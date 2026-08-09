@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from ..crud import item_to_api, next_position
+from ..db import get_session
 from ..models import Item, new_id
-from ..storage import storage
+from ..orm import CategoryORM, ItemORM, PageORM
 
 router = APIRouter(prefix="/api/items", tags=["items"])
 
@@ -22,57 +25,52 @@ class ItemUpdate(BaseModel):
 
 
 @router.get("", response_model=List[Item])
-async def list_items() -> List[Item]:
-    db = await storage.get()
-    return list(db.items.values())
+def list_items(session: Session = Depends(get_session)) -> List[Item]:
+    rows = session.query(ItemORM).all()
+    return [item_to_api(session, r) for r in rows]
 
 
 @router.post("", response_model=Item)
-async def create_item(payload: ItemCreate) -> Item:
-    def fn(db):
-        if payload.category_id not in db.categories:
-            raise HTTPException(404, "category not found")
-        item = Item(id=new_id(), name=payload.name, category_id=payload.category_id)
-        db.items[item.id] = item
-        db.categories[payload.category_id].item_ids.append(item.id)
-        return item
-
-    return await storage.mutate(fn)
+def create_item(payload: ItemCreate, session: Session = Depends(get_session)) -> Item:
+    cat = session.get(CategoryORM, payload.category_id)
+    if not cat:
+        raise HTTPException(404, "category not found")
+    row = ItemORM(
+        id=new_id(),
+        name=payload.name,
+        category_id=payload.category_id,
+        position=next_position(session, ItemORM, category_id=payload.category_id),
+    )
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return item_to_api(session, row)
 
 
 @router.patch("/{item_id}", response_model=Item)
-async def update_item(item_id: str, payload: ItemUpdate) -> Item:
-    def fn(db):
-        item = db.items.get(item_id)
-        if not item:
-            raise HTTPException(404, "not found")
-        if payload.name is not None:
-            item.name = payload.name
-        if payload.category_id is not None and payload.category_id != item.category_id:
-            if payload.category_id not in db.categories:
-                raise HTTPException(404, "category not found")
-            old_cat = db.categories.get(item.category_id)
-            if old_cat and item.id in old_cat.item_ids:
-                old_cat.item_ids.remove(item.id)
-            item.category_id = payload.category_id
-            db.categories[payload.category_id].item_ids.append(item.id)
-        return item
-
-    return await storage.mutate(fn)
+def update_item(item_id: str, payload: ItemUpdate, session: Session = Depends(get_session)) -> Item:
+    row = session.get(ItemORM, item_id)
+    if not row:
+        raise HTTPException(404, "not found")
+    if payload.name is not None:
+        row.name = payload.name
+    if payload.category_id is not None and payload.category_id != row.category_id:
+        cat = session.get(CategoryORM, payload.category_id)
+        if not cat:
+            raise HTTPException(404, "category not found")
+        row.category_id = payload.category_id
+        row.position = next_position(session, ItemORM, category_id=payload.category_id)
+    session.commit()
+    session.refresh(row)
+    return item_to_api(session, row)
 
 
 @router.delete("/{item_id}")
-async def delete_item(item_id: str) -> dict:
-    def fn(db):
-        item = db.items.get(item_id)
-        if not item:
-            raise HTTPException(404, "not found")
-        cat = db.categories.get(item.category_id)
-        if cat and item_id in cat.item_ids:
-            cat.item_ids.remove(item_id)
-        for page_id in list(item.page_ids):
-            db.pages.pop(page_id, None)
-        del db.items[item_id]
-        return {"ok": True}
-
-    return await storage.mutate(fn)
+def delete_item(item_id: str, session: Session = Depends(get_session)) -> dict:
+    row = session.get(ItemORM, item_id)
+    if not row:
+        raise HTTPException(404, "not found")
+    session.query(PageORM).filter_by(item_id=item_id).delete()
+    session.delete(row)
+    session.commit()
+    return {"ok": True}

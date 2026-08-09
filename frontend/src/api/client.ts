@@ -78,6 +78,8 @@ export const api = {
     form.append('file', file)
     return request<Page>(`/api/pages/${pageId}/image/${slot}`, { method: 'POST', body: form })
   },
+  deleteImage: (pageId: string, slot: 'a' | 'b') =>
+    request<Page>(`/api/pages/${pageId}/image/${slot}`, { method: 'DELETE' }),
   updateStrokes: (pageId: string, slot: 'a' | 'b', strokes: Stroke[]) =>
     request<Page>(`/api/pages/${pageId}/strokes/${slot}`, { method: 'PUT', body: JSON.stringify({ strokes }) }),
 }

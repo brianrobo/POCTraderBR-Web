@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -50,14 +50,3 @@ class Category(BaseModel):
     parent_id: Optional[str] = None
     child_ids: List[str] = Field(default_factory=list)
     item_ids: List[str] = Field(default_factory=list)
-
-
-class DB(BaseModel):
-    categories: Dict[str, Category] = Field(default_factory=dict)
-    items: Dict[str, Item] = Field(default_factory=dict)
-    pages: Dict[str, Page] = Field(default_factory=dict)
-
-    @staticmethod
-    def new() -> "DB":
-        root = Category(id=ROOT_CATEGORY_ID, name="Root", parent_id=None)
-        return DB(categories={ROOT_CATEGORY_ID: root})

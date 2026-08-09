@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from ..crud import category_to_api, next_position
+from ..db import get_session
 from ..models import Category, ROOT_CATEGORY_ID, new_id
-from ..storage import storage
+from ..orm import CategoryORM, ItemORM
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
@@ -22,58 +25,57 @@ class CategoryUpdate(BaseModel):
 
 
 @router.get("", response_model=List[Category])
-async def list_categories() -> List[Category]:
-    db = await storage.get()
-    return list(db.categories.values())
+def list_categories(session: Session = Depends(get_session)) -> List[Category]:
+    rows = session.query(CategoryORM).all()
+    return [category_to_api(session, r) for r in rows]
 
 
 @router.post("", response_model=Category)
-async def create_category(payload: CategoryCreate) -> Category:
-    def fn(db):
-        if payload.parent_id not in db.categories:
-            raise HTTPException(404, "parent category not found")
-        cat = Category(id=new_id(), name=payload.name, parent_id=payload.parent_id)
-        db.categories[cat.id] = cat
-        db.categories[payload.parent_id].child_ids.append(cat.id)
-        return cat
-
-    return await storage.mutate(fn)
+def create_category(payload: CategoryCreate, session: Session = Depends(get_session)) -> Category:
+    parent = session.get(CategoryORM, payload.parent_id)
+    if not parent:
+        raise HTTPException(404, "parent category not found")
+    row = CategoryORM(
+        id=new_id(),
+        name=payload.name,
+        parent_id=payload.parent_id,
+        position=next_position(session, CategoryORM, parent_id=payload.parent_id),
+    )
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return category_to_api(session, row)
 
 
 @router.patch("/{category_id}", response_model=Category)
-async def update_category(category_id: str, payload: CategoryUpdate) -> Category:
-    def fn(db):
-        cat = db.categories.get(category_id)
-        if not cat:
-            raise HTTPException(404, "not found")
-        if payload.name is not None:
-            cat.name = payload.name
-        if payload.parent_id is not None and payload.parent_id != cat.parent_id:
-            if payload.parent_id not in db.categories:
-                raise HTTPException(404, "parent category not found")
-            if cat.parent_id and cat.id in db.categories[cat.parent_id].child_ids:
-                db.categories[cat.parent_id].child_ids.remove(cat.id)
-            cat.parent_id = payload.parent_id
-            db.categories[payload.parent_id].child_ids.append(cat.id)
-        return cat
-
-    return await storage.mutate(fn)
+def update_category(category_id: str, payload: CategoryUpdate, session: Session = Depends(get_session)) -> Category:
+    row = session.get(CategoryORM, category_id)
+    if not row:
+        raise HTTPException(404, "not found")
+    if payload.name is not None:
+        row.name = payload.name
+    if payload.parent_id is not None and payload.parent_id != row.parent_id:
+        new_parent = session.get(CategoryORM, payload.parent_id)
+        if not new_parent:
+            raise HTTPException(404, "parent category not found")
+        row.parent_id = payload.parent_id
+        row.position = next_position(session, CategoryORM, parent_id=payload.parent_id)
+    session.commit()
+    session.refresh(row)
+    return category_to_api(session, row)
 
 
 @router.delete("/{category_id}")
-async def delete_category(category_id: str) -> dict:
+def delete_category(category_id: str, session: Session = Depends(get_session)) -> dict:
     if category_id == ROOT_CATEGORY_ID:
         raise HTTPException(400, "cannot delete root category")
-
-    def fn(db):
-        cat = db.categories.get(category_id)
-        if not cat:
-            raise HTTPException(404, "not found")
-        if cat.child_ids or cat.item_ids:
-            raise HTTPException(400, "category is not empty")
-        if cat.parent_id and cat.id in db.categories[cat.parent_id].child_ids:
-            db.categories[cat.parent_id].child_ids.remove(cat.id)
-        del db.categories[category_id]
-        return {"ok": True}
-
-    return await storage.mutate(fn)
+    row = session.get(CategoryORM, category_id)
+    if not row:
+        raise HTTPException(404, "not found")
+    has_children = session.query(CategoryORM).filter_by(parent_id=category_id).first() is not None
+    has_items = session.query(ItemORM).filter_by(category_id=category_id).first() is not None
+    if has_children or has_items:
+        raise HTTPException(400, "category is not empty")
+    session.delete(row)
+    session.commit()
+    return {"ok": True}

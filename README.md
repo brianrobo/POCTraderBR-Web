@@ -7,9 +7,9 @@
 ## 구조
 
 ```
-backend/    FastAPI (Python) — REST API, JSON 파일 저장소, 정적 파일 서빙
+backend/    FastAPI (Python) — REST API, SQLite 저장소, 정적 파일 서빙
 frontend/   React + TypeScript + Vite — 트리 네비게이터, 리치텍스트 메모, 차트 캔버스
-data/       notes_db.json (실 데이터, git에 커밋 안 함)
+data/       notes_db.sqlite3 (실 데이터, git에 커밋 안 함)
 assets/     업로드된 차트 이미지 (실 데이터, git에 커밋 안 함)
 ```
 

@@ -309,6 +309,12 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     }
   }
 
+  async function handleDeleteImage() {
+    if (!window.confirm('이 이미지를 삭제할까요? (그려둔 내용도 함께 삭제됩니다)')) return
+    const updated = await api.deleteImage(page.id, slot)
+    onPageUpdate(updated)
+  }
+
   function extFromMime(mime: string): string {
     switch (mime) {
       case 'image/jpeg':
@@ -329,6 +335,11 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
           {uploading ? '업로드 중...' : `이미지 ${slot.toUpperCase()} 업로드`}
           <input type="file" accept="image/png,image/jpeg,image/bmp,image/webp" onChange={handleUpload} hidden />
         </label>
+        {imageUrl && (
+          <button type="button" onClick={handleDeleteImage}>
+            이미지 삭제
+          </button>
+        )}
         <button type="button" className={mode === 'draw' ? 'active' : ''} onClick={() => setMode('draw')}>
           펜
         </button>
