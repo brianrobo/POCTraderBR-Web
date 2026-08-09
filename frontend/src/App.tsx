@@ -4,10 +4,14 @@ import { TreeNavigator } from './components/TreeNavigator'
 import { PageView } from './components/PageView'
 import './App.css'
 
+const LAST_SELECTED_ITEM_KEY = 'poctrader:lastSelectedItemId'
+
 export default function App() {
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Item[]>([])
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(() =>
+    localStorage.getItem(LAST_SELECTED_ITEM_KEY),
+  )
 
   const refresh = async () => {
     const [cats, its] = await Promise.all([api.listCategories(), api.listItems()])
@@ -18,6 +22,14 @@ export default function App() {
   useEffect(() => {
     refresh()
   }, [])
+
+  useEffect(() => {
+    if (selectedItemId) {
+      localStorage.setItem(LAST_SELECTED_ITEM_KEY, selectedItemId)
+    } else {
+      localStorage.removeItem(LAST_SELECTED_ITEM_KEY)
+    }
+  }, [selectedItemId])
 
   const selectedItem = items.find((i) => i.id === selectedItemId) ?? null
 

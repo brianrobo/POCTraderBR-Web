@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, ROOT_CATEGORY_ID, type Category, type Item } from '../api/client'
 
 interface Props {
@@ -14,6 +14,27 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
 
   const catById = new Map(categories.map((c) => [c.id, c]))
   const itemById = new Map(items.map((i) => [i.id, i]))
+
+  // Auto-expand the folder path to the selected item (e.g. one restored
+  // from localStorage on load) so it's actually visible in the tree.
+  useEffect(() => {
+    if (!selectedItemId) return
+    const item = itemById.get(selectedItemId)
+    if (!item) return
+    const toExpand: string[] = []
+    let catId: string | undefined = item.category_id
+    while (catId) {
+      toExpand.push(catId)
+      catId = catById.get(catId)?.parent_id ?? undefined
+    }
+    setExpanded((prev) => {
+      if (toExpand.every((id) => prev.has(id))) return prev
+      const next = new Set(prev)
+      for (const id of toExpand) next.add(id)
+      return next
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedItemId, categories, items])
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
