@@ -38,6 +38,20 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
     onRefresh()
   }
 
+  const renameFolder = async (id: string, currentName: string) => {
+    const name = window.prompt('폴더 이름 변경', currentName)
+    if (!name || name === currentName) return
+    await api.renameCategory(id, name)
+    onRefresh()
+  }
+
+  const renameItemName = async (id: string, currentName: string) => {
+    const name = window.prompt('아이템 이름 변경', currentName)
+    if (!name || name === currentName) return
+    await api.renameItem(id, name)
+    onRefresh()
+  }
+
   const removeFolder = async (id: string) => {
     if (!window.confirm('이 폴더를 삭제할까요? (비어있어야 합니다)')) return
     try {
@@ -64,7 +78,13 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
           <button className="tree-toggle" onClick={() => toggle(id)}>
             {isExpanded ? '▾' : '▸'}
           </button>
-          <span className="tree-label">{cat.name}</span>
+          <span
+            className="tree-label"
+            title={id !== ROOT_CATEGORY_ID ? '더블클릭하여 이름 변경' : undefined}
+            onDoubleClick={() => id !== ROOT_CATEGORY_ID && renameFolder(id, cat.name)}
+          >
+            {cat.name}
+          </span>
           <span className="tree-actions">
             <button title="하위 폴더 추가" onClick={() => addFolder(id)}>+F</button>
             <button title="아이템 추가" onClick={() => addItem(id)}>+I</button>
@@ -86,7 +106,16 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
                   style={{ paddingLeft: (depth + 1) * 14 }}
                   onClick={() => onSelectItem(itemId)}
                 >
-                  <span className="tree-label">{item.name}</span>
+                  <span
+                    className="tree-label"
+                    title="더블클릭하여 이름 변경"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation()
+                      renameItemName(itemId, item.name)
+                    }}
+                  >
+                    {item.name}
+                  </span>
                   <span className="tree-actions">
                     <button
                       title="아이템 삭제"
