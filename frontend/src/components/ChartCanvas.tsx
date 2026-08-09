@@ -221,6 +221,28 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     return pts
   }
 
+  function undoLastStroke() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const paths = canvas.getObjects().filter((o) => o.type === 'path')
+    const last = paths[paths.length - 1]
+    if (!last) return
+    canvas.remove(last)
+    canvas.requestRenderAll()
+    void persistStrokes()
+  }
+
+  function clearStrokes() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const paths = canvas.getObjects().filter((o) => o.type === 'path')
+    if (paths.length === 0) return
+    if (!window.confirm('이 이미지에 그린 내용을 모두 지울까요?')) return
+    for (const p of paths) canvas.remove(p)
+    canvas.requestRenderAll()
+    void persistStrokes()
+  }
+
   async function persistStrokes() {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -308,6 +330,12 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
           }}
         >
           맞춤
+        </button>
+        <button type="button" onClick={undoLastStroke}>
+          실행취소
+        </button>
+        <button type="button" onClick={clearStrokes}>
+          전체 지우기
         </button>
         {COLORS.map((c) => (
           <button
