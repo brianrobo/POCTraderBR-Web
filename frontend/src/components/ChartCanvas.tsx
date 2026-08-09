@@ -13,7 +13,7 @@ interface Props {
 }
 
 /**
- * How the current image is placed on the canvas: a plain "cover fit"
+ * How the current image is placed on the canvas: a plain "contain fit"
  * (scale + top-left offset) of the image object itself, kept OUTSIDE of
  * fabric's viewportTransform. viewportTransform is reserved solely for the
  * user's own interactive pan/zoom gestures (mouse wheel / drag), so the two
@@ -54,17 +54,13 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     canvas.freeDrawingBrush = new PencilBrush(canvas)
     canvas.isDrawingMode = true
 
-    const resize = () => {
-      if (!wrapRef.current) return
-      canvas.setDimensions({
-        width: wrapRef.current.clientWidth,
-        height: wrapRef.current.clientHeight,
-      })
-      fitAndRedraw(canvas)
-    }
+    const resize = () => syncAndFit(canvas)
     resize()
     const ro = new ResizeObserver(resize)
     ro.observe(wrapRef.current)
+    // ResizeObserver alone doesn't reliably fire for every browser-window
+    // resize in all cases — back it up with a direct window listener.
+    window.addEventListener('resize', resize)
 
     // Interactive zoom (wheel) — layered on top of the base image placement
     // via viewportTransform; never touches image scale/position itself.
@@ -109,6 +105,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
 
     return () => {
       ro.disconnect()
+      window.removeEventListener('resize', resize)
       canvas.dispose()
       canvasRef.current = null
     }
@@ -130,7 +127,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     }
     FabricImage.fromURL(imageUrl, { crossOrigin: 'anonymous' }).then((img) => {
       if (canvasRef.current !== canvas) return
-      img.set({ selectable: false, evented: false })
+      img.set({ selectable: false, evented: false, objectCaching: false })
       canvas.add(img)
       currentImgRef.current = img
       strokesRef.current = imageSlot?.strokes ?? []
@@ -160,9 +157,23 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     const iw = img.width ?? cw
     const ih = img.height ?? ch
     if (cw <= 0 || ch <= 0 || iw <= 0 || ih <= 0) return null
-    // Cover the whole box (crop overflow) rather than letterboxing.
-    const scale = Math.max(cw / iw, ch / ih)
+    // Contain the whole image within the box (letterbox) — nothing gets
+    // cropped, matching what users expect for reviewing a chart image.
+    const scale = Math.min(cw / iw, ch / ih)
     return { scale, left: (cw - iw * scale) / 2, top: (ch - ih * scale) / 2 }
+  }
+
+  /** Re-measures the wrap element and applies that size to the canvas
+   * before fitting — this is the single source of truth for "current size",
+   * used by both the resize listeners and the manual 맞춤 button so neither
+   * can act on a stale canvas.getWidth()/getHeight(). */
+  function syncAndFit(canvas: Canvas) {
+    if (!wrapRef.current) return
+    canvas.setDimensions({
+      width: wrapRef.current.clientWidth,
+      height: wrapRef.current.clientHeight,
+    })
+    fitAndRedraw(canvas)
   }
 
   /** Re-fits the image to the current canvas size, resets interactive
@@ -183,8 +194,10 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
       top: placement.top,
     })
     img.setCoords()
+    img.dirty = true
     canvas.setViewportTransform([1, 0, 0, 1, 0, 0])
     redrawStrokes(canvas, strokesRef.current)
+    canvas.requestRenderAll()
   }
 
   function redrawStrokes(canvas: Canvas, strokes: Stroke[]) {
@@ -326,7 +339,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
           type="button"
           onClick={() => {
             const canvas = canvasRef.current
-            if (canvas) fitAndRedraw(canvas)
+            if (canvas) syncAndFit(canvas)
           }}
         >
           맞춤
