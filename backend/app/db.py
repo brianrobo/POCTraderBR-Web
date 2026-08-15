@@ -44,6 +44,13 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("pages", "stock_name_a", "ALTER TABLE pages ADD COLUMN stock_name_a TEXT DEFAULT ''"),
     ("pages", "stock_name_b", "ALTER TABLE pages ADD COLUMN stock_name_b TEXT DEFAULT ''"),
     ("categories", "urls", "ALTER TABLE categories ADD COLUMN urls TEXT DEFAULT '[]'"),
+    ("pages", "layout", "ALTER TABLE pages ADD COLUMN layout TEXT DEFAULT '2'"),
+    ("pages", "image_a2_path", "ALTER TABLE pages ADD COLUMN image_a2_path TEXT"),
+    ("pages", "image_a2_strokes", "ALTER TABLE pages ADD COLUMN image_a2_strokes TEXT DEFAULT '[]'"),
+    ("pages", "image_b2_path", "ALTER TABLE pages ADD COLUMN image_b2_path TEXT"),
+    ("pages", "image_b2_strokes", "ALTER TABLE pages ADD COLUMN image_b2_strokes TEXT DEFAULT '[]'"),
+    ("pages", "stock_name_a2", "ALTER TABLE pages ADD COLUMN stock_name_a2 TEXT DEFAULT ''"),
+    ("pages", "stock_name_b2", "ALTER TABLE pages ADD COLUMN stock_name_b2 TEXT DEFAULT ''"),
 ]
 
 

@@ -95,6 +95,11 @@
   display: flex;
 }
 
+.tree-actions button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .tree-actions button {
   padding: 1px 5px;
   font-size: 11px;
@@ -212,11 +217,22 @@
 }
 
 /* Chart canvases */
+.layout-toggle {
+  display: flex;
+  gap: 4px;
+}
+
 .charts-row {
   display: flex;
   gap: 12px;
   flex: 1;
   min-height: 420px;
+}
+
+.charts-row.layout-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
 }
 
 .chart-pane {
@@ -227,6 +243,7 @@
   border-radius: 6px;
   background: var(--panel);
   min-width: 0;
+  min-height: 0;
 }
 
 .chart-toolbar {

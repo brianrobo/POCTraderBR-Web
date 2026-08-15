@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -22,6 +22,10 @@ class ItemCreate(BaseModel):
 class ItemUpdate(BaseModel):
     name: Optional[str] = None
     category_id: Optional[str] = None
+
+
+class ItemMove(BaseModel):
+    direction: Literal["up", "down"]
 
 
 @router.get("", response_model=List[Item])
@@ -63,6 +67,23 @@ def update_item(item_id: str, payload: ItemUpdate, session: Session = Depends(ge
     session.commit()
     session.refresh(row)
     return item_to_api(session, row)
+
+
+@router.post("/{item_id}/move")
+def move_item(item_id: str, payload: ItemMove, session: Session = Depends(get_session)) -> dict:
+    row = session.get(ItemORM, item_id)
+    if not row:
+        raise HTTPException(404, "not found")
+    siblings = (
+        session.query(ItemORM).filter_by(category_id=row.category_id).order_by(ItemORM.position).all()
+    )
+    idx = next(i for i, s in enumerate(siblings) if s.id == item_id)
+    swap_idx = idx - 1 if payload.direction == "up" else idx + 1
+    if 0 <= swap_idx < len(siblings):
+        other = siblings[swap_idx]
+        row.position, other.position = other.position, row.position
+        session.commit()
+    return {"ok": True}
 
 
 @router.delete("/{item_id}")

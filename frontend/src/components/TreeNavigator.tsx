@@ -90,6 +90,11 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
     onRefresh()
   }
 
+  const moveItem = async (id: string, direction: 'up' | 'down') => {
+    await api.moveItem(id, direction)
+    onRefresh()
+  }
+
   const addUrl = async (cat: Category) => {
     if (cat.urls.length >= MAX_CATEGORY_URLS) {
       window.alert(`URL은 최대 ${MAX_CATEGORY_URLS}개까지 등록할 수 있습니다.`)
@@ -165,7 +170,7 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
         {isExpanded && (
           <div className="tree-children">
             {cat.child_ids.map((childId) => renderCategory(childId, depth + 1))}
-            {cat.item_ids.map((itemId) => {
+            {cat.item_ids.map((itemId, itemIdx) => {
               const item = itemById.get(itemId)
               if (!item) return null
               return (
@@ -186,6 +191,26 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
                     {item.name}
                   </span>
                   <span className="tree-actions">
+                    <button
+                      title="위로 이동"
+                      disabled={itemIdx === 0}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        moveItem(itemId, 'up')
+                      }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      title="아래로 이동"
+                      disabled={itemIdx === cat.item_ids.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        moveItem(itemId, 'down')
+                      }}
+                    >
+                      ▼
+                    </button>
                     <button
                       title="아이템 삭제"
                       onClick={(e) => {

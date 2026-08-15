@@ -43,6 +43,15 @@ export function PageView({ item }: Props) {
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) ?? null
 
+  const setLayout = async (id: string, layout: '2' | '4') => {
+    try {
+      const updated = await api.updatePageLayout(id, layout)
+      updatePage(updated)
+    } catch (e) {
+      window.alert((e as Error).message)
+    }
+  }
+
   if (loading) return <div className="page-view-loading">로딩 중...</div>
 
   return (
@@ -81,9 +90,55 @@ export function PageView({ item }: Props) {
               updatePage(updated)
             }}
           />
-          <div className="charts-row">
-            <ChartCanvas key={`${selectedPage.id}-a`} page={selectedPage} slot="a" onPageUpdate={updatePage} />
-            <ChartCanvas key={`${selectedPage.id}-b`} page={selectedPage} slot="b" onPageUpdate={updatePage} />
+          <div className="layout-toggle">
+            <button
+              type="button"
+              className={selectedPage.layout === '2' ? 'active' : ''}
+              onClick={() => setLayout(selectedPage.id, '2')}
+            >
+              2단
+            </button>
+            <button
+              type="button"
+              className={selectedPage.layout === '4' ? 'active' : ''}
+              onClick={() => setLayout(selectedPage.id, '4')}
+            >
+              4단
+            </button>
+          </div>
+          <div className={`charts-row ${selectedPage.layout === '4' ? 'layout-4' : ''}`}>
+            <ChartCanvas
+              key={`${selectedPage.id}-a`}
+              page={selectedPage}
+              slot="a"
+              label={selectedPage.layout === '4' ? 'A 상단' : 'A'}
+              onPageUpdate={updatePage}
+            />
+            <ChartCanvas
+              key={`${selectedPage.id}-b`}
+              page={selectedPage}
+              slot="b"
+              label={selectedPage.layout === '4' ? 'B 상단' : 'B'}
+              onPageUpdate={updatePage}
+            />
+            {selectedPage.layout === '4' && (
+              <>
+                <ChartCanvas
+                  key={`${selectedPage.id}-a2`}
+                  page={selectedPage}
+                  slot="a2"
+                  label="A 하단"
+                  onPageUpdate={updatePage}
+                />
+                <ChartCanvas
+                  key={`${selectedPage.id}-b2`}
+                  page={selectedPage}
+                  slot="b2"
+                  label="B 하단"
+                  onPageUpdate={updatePage}
+                />
+              </>
+            )}
           </div>
         </div>
       ) : (

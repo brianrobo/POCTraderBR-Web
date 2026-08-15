@@ -28,15 +28,24 @@ class ImageSlot(BaseModel):
     strokes: List[Stroke] = Field(default_factory=list)
 
 
+IMAGE_SLOTS = ("a", "a2", "b", "b2")
+LAYOUTS = ("2", "4")
+
+
 class Page(BaseModel):
     id: str
     item_id: str
     note_html: str = ""
     updated_at: float = Field(default_factory=now)
+    layout: str = "2"
     image_a: Optional[ImageSlot] = None
+    image_a2: Optional[ImageSlot] = None
     image_b: Optional[ImageSlot] = None
+    image_b2: Optional[ImageSlot] = None
     stock_name_a: str = ""
+    stock_name_a2: str = ""
     stock_name_b: str = ""
+    stock_name_b2: str = ""
 
 
 class Item(BaseModel):

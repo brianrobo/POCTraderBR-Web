@@ -38,6 +38,23 @@ def item_to_api(session: Session, row: ItemORM) -> Item:
     return Item(id=row.id, name=row.name, category_id=row.category_id, page_ids=page_ids)
 
 
+# Per-slot ORM column names, keyed by the slot id used in the API
+# ('a' / 'a2' / 'b' / 'b2' — top/bottom of the A and B chart columns).
+SLOT_PATH_ATTR = {"a": "image_a_path", "a2": "image_a2_path", "b": "image_b_path", "b2": "image_b2_path"}
+SLOT_STROKES_ATTR = {
+    "a": "image_a_strokes",
+    "a2": "image_a2_strokes",
+    "b": "image_b_strokes",
+    "b2": "image_b2_strokes",
+}
+SLOT_STOCK_NAME_ATTR = {
+    "a": "stock_name_a",
+    "a2": "stock_name_a2",
+    "b": "stock_name_b",
+    "b2": "stock_name_b2",
+}
+
+
 def _slot_from_row(path: Optional[str], strokes_json: str) -> Optional[ImageSlot]:
     if not path:
         return None
@@ -51,10 +68,15 @@ def page_to_api(row: PageORM) -> Page:
         item_id=row.item_id,
         note_html=row.note_html,
         updated_at=row.updated_at,
+        layout=row.layout,
         image_a=_slot_from_row(row.image_a_path, row.image_a_strokes),
+        image_a2=_slot_from_row(row.image_a2_path, row.image_a2_strokes),
         image_b=_slot_from_row(row.image_b_path, row.image_b_strokes),
+        image_b2=_slot_from_row(row.image_b2_path, row.image_b2_strokes),
         stock_name_a=row.stock_name_a,
+        stock_name_a2=row.stock_name_a2,
         stock_name_b=row.stock_name_b,
+        stock_name_b2=row.stock_name_b2,
     )
 
 

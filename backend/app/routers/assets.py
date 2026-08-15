@@ -6,9 +6,9 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from ..crud import page_to_api
+from ..crud import SLOT_PATH_ATTR, SLOT_STROKES_ATTR, page_to_api
 from ..db import get_session
-from ..models import Page, now
+from ..models import IMAGE_SLOTS, Page, now
 from ..orm import PageORM
 from ..paths import ASSETS_DIR
 
@@ -21,8 +21,8 @@ ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 async def upload_image(
     page_id: str, slot: str, file: UploadFile = File(...), session: Session = Depends(get_session)
 ) -> Page:
-    if slot not in ("a", "b"):
-        raise HTTPException(400, "slot must be 'a' or 'b'")
+    if slot not in IMAGE_SLOTS:
+        raise HTTPException(400, f"slot must be one of {IMAGE_SLOTS}")
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXT:
         raise HTTPException(400, f"unsupported file type: {ext}")
@@ -32,7 +32,8 @@ async def upload_image(
     if not row:
         raise HTTPException(404, "page not found")
 
-    old_path = row.image_a_path if slot == "a" else row.image_b_path
+    path_attr = SLOT_PATH_ATTR[slot]
+    old_path = getattr(row, path_attr)
 
     item_dir = ASSETS_DIR / row.item_id
     item_dir.mkdir(parents=True, exist_ok=True)
@@ -44,12 +45,8 @@ async def upload_image(
     dest.write_bytes(content)
     rel_path = f"{row.item_id}/{filename}"
 
-    if slot == "a":
-        row.image_a_path = rel_path
-        row.image_a_strokes = "[]"
-    else:
-        row.image_b_path = rel_path
-        row.image_b_strokes = "[]"
+    setattr(row, path_attr, rel_path)
+    setattr(row, SLOT_STROKES_ATTR[slot], "[]")
     row.updated_at = now()
     session.commit()
     session.refresh(row)
@@ -62,19 +59,16 @@ async def upload_image(
 
 @router.delete("/{page_id}/image/{slot}", response_model=Page)
 def delete_image(page_id: str, slot: str, session: Session = Depends(get_session)) -> Page:
-    if slot not in ("a", "b"):
-        raise HTTPException(400, "slot must be 'a' or 'b'")
+    if slot not in IMAGE_SLOTS:
+        raise HTTPException(400, f"slot must be one of {IMAGE_SLOTS}")
     row = session.get(PageORM, page_id)
     if not row:
         raise HTTPException(404, "page not found")
 
-    old_path = row.image_a_path if slot == "a" else row.image_b_path
-    if slot == "a":
-        row.image_a_path = None
-        row.image_a_strokes = "[]"
-    else:
-        row.image_b_path = None
-        row.image_b_strokes = "[]"
+    path_attr = SLOT_PATH_ATTR[slot]
+    old_path = getattr(row, path_attr)
+    setattr(row, path_attr, None)
+    setattr(row, SLOT_STROKES_ATTR[slot], "[]")
     row.updated_at = now()
     session.commit()
     session.refresh(row)

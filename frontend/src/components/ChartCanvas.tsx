@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Canvas, FabricImage, Path, PencilBrush, Point, type TPointerEventInfo, type TPointerEvent } from 'fabric'
-import { api, type ImageSlot, type Page, type Stroke } from '../api/client'
+import { api, type ImageSlot, type ImageSlotKey, type Page, type Stroke } from '../api/client'
 
 type Mode = 'none' | 'draw' | 'pan'
 
@@ -8,8 +8,35 @@ const COLORS = ['#ff3c3c', '#2d6bff', '#222222']
 
 interface Props {
   page: Page
-  slot: 'a' | 'b'
+  slot: ImageSlotKey
+  label: string
   onPageUpdate: (page: Page) => void
+}
+
+function getImageSlotData(page: Page, slot: ImageSlotKey): ImageSlot | null {
+  switch (slot) {
+    case 'a':
+      return page.image_a
+    case 'a2':
+      return page.image_a2
+    case 'b':
+      return page.image_b
+    case 'b2':
+      return page.image_b2
+  }
+}
+
+function getStockNameData(page: Page, slot: ImageSlotKey): string {
+  switch (slot) {
+    case 'a':
+      return page.stock_name_a
+    case 'a2':
+      return page.stock_name_a2
+    case 'b':
+      return page.stock_name_b
+    case 'b2':
+      return page.stock_name_b2
+  }
 }
 
 /**
@@ -30,7 +57,7 @@ interface Placement {
   top: number
 }
 
-export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
+export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const elRef = useRef<HTMLCanvasElement>(null)
   const canvasRef = useRef<Canvas | null>(null)
@@ -43,11 +70,11 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
   const [penWidth, setPenWidth] = useState(3)
   const [uploading, setUploading] = useState(false)
   const stockNameSaveTimer = useRef<number | null>(null)
-  const [stockName, setStockName] = useState(slot === 'a' ? page.stock_name_a : page.stock_name_b)
+  const [stockName, setStockName] = useState(getStockNameData(page, slot))
 
-  const imageSlot: ImageSlot | null = slot === 'a' ? page.image_a : page.image_b
+  const imageSlot: ImageSlot | null = getImageSlotData(page, slot)
   const imageUrl = imageSlot ? `/uploads/${imageSlot.path}` : null
-  const savedStockName = slot === 'a' ? page.stock_name_a : page.stock_name_b
+  const savedStockName = getStockNameData(page, slot)
 
   // Keep the input in sync when the underlying page data changes from
   // elsewhere (e.g. switching pages), without fighting the user's typing.
@@ -353,7 +380,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     <div className="chart-pane">
       <div className="chart-toolbar">
         <label className="upload-btn">
-          {uploading ? '업로드 중...' : `이미지 ${slot.toUpperCase()} 업로드`}
+          {uploading ? '업로드 중...' : `이미지 ${label} 업로드`}
           <input type="file" accept="image/png,image/jpeg,image/bmp,image/webp" onChange={handleUpload} hidden />
         </label>
         {imageUrl && (
@@ -403,7 +430,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
         <input
           type="text"
           className="stockname-input"
-          placeholder={`종목명 ${slot.toUpperCase()}`}
+          placeholder={`종목명 ${label}`}
           value={stockName}
           onChange={(e) => handleStockNameChange(e.target.value)}
         />

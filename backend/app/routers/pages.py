@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..crud import next_position, page_to_api
+from ..crud import SLOT_PATH_ATTR, SLOT_STROKES_ATTR, next_position, page_to_api
 from ..db import get_session
-from ..models import Page, Stroke, new_id, now
+from ..models import IMAGE_SLOTS, LAYOUTS, Page, Stroke, new_id, now
 from ..orm import ItemORM, PageORM
 
 router = APIRouter(prefix="/api/pages", tags=["pages"])
@@ -21,8 +21,11 @@ class PageCreate(BaseModel):
 
 class PageUpdate(BaseModel):
     note_html: Optional[str] = None
+    layout: Optional[str] = None
     stock_name_a: Optional[str] = None
+    stock_name_a2: Optional[str] = None
     stock_name_b: Optional[str] = None
+    stock_name_b2: Optional[str] = None
 
 
 class StrokesUpdate(BaseModel):
@@ -70,10 +73,22 @@ def update_page(page_id: str, payload: PageUpdate, session: Session = Depends(ge
         raise HTTPException(404, "not found")
     if payload.note_html is not None:
         row.note_html = payload.note_html
+    if payload.layout is not None and payload.layout != row.layout:
+        if payload.layout not in LAYOUTS:
+            raise HTTPException(400, f"layout must be one of {LAYOUTS}")
+        if payload.layout == "2" and (row.image_a2_path or row.image_b2_path):
+            raise HTTPException(
+                400, "하단 이미지(A2/B2)를 먼저 삭제해야 2단 레이아웃으로 전환할 수 있습니다"
+            )
+        row.layout = payload.layout
     if payload.stock_name_a is not None:
         row.stock_name_a = payload.stock_name_a
+    if payload.stock_name_a2 is not None:
+        row.stock_name_a2 = payload.stock_name_a2
     if payload.stock_name_b is not None:
         row.stock_name_b = payload.stock_name_b
+    if payload.stock_name_b2 is not None:
+        row.stock_name_b2 = payload.stock_name_b2
     row.updated_at = now()
     session.commit()
     session.refresh(row)
@@ -94,19 +109,16 @@ def delete_page(page_id: str, session: Session = Depends(get_session)) -> dict:
 def update_strokes(
     page_id: str, slot: str, payload: StrokesUpdate, session: Session = Depends(get_session)
 ) -> Page:
-    if slot not in ("a", "b"):
-        raise HTTPException(400, "slot must be 'a' or 'b'")
+    if slot not in IMAGE_SLOTS:
+        raise HTTPException(400, f"slot must be one of {IMAGE_SLOTS}")
     row = session.get(PageORM, page_id)
     if not row:
         raise HTTPException(404, "not found")
-    path = row.image_a_path if slot == "a" else row.image_b_path
-    if not path:
+    path_attr = SLOT_PATH_ATTR[slot]
+    if not getattr(row, path_attr):
         raise HTTPException(400, "no image uploaded for this slot")
     strokes_json = json.dumps([s.model_dump() for s in payload.strokes])
-    if slot == "a":
-        row.image_a_strokes = strokes_json
-    else:
-        row.image_b_strokes = strokes_json
+    setattr(row, SLOT_STROKES_ATTR[slot], strokes_json)
     row.updated_at = now()
     session.commit()
     session.refresh(row)
