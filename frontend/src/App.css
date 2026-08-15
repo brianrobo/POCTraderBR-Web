@@ -78,6 +78,14 @@
   white-space: nowrap;
 }
 
+.folder-label {
+  background: #eab308;
+  color: #1a1300;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
 .tree-actions {
   display: none;
   gap: 2px;
@@ -90,6 +98,40 @@
 .tree-actions button {
   padding: 1px 5px;
   font-size: 11px;
+}
+
+.links-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 8px 6px;
+  font-size: 12px;
+}
+
+.links-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.links-panel-row a {
+  color: var(--accent-hover);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.links-panel-row button {
+  padding: 0 5px;
+  font-size: 11px;
+}
+
+.links-panel-add {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 2px 6px;
 }
 
 .page-view {
@@ -198,6 +240,26 @@
 
 .upload-btn {
   font-size: 13px;
+}
+
+.chart-stockname-row {
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stockname-input {
+  width: 100%;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  padding: 4px 8px;
+}
+
+.stockname-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .chart-canvas-wrap {

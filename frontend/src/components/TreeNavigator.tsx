@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, ROOT_CATEGORY_ID, type Category, type Item } from '../api/client'
+import { api, MAX_CATEGORY_URLS, ROOT_CATEGORY_ID, type Category, type Item } from '../api/client'
 
 interface Props {
   categories: Category[]
@@ -11,6 +11,7 @@ interface Props {
 
 export function TreeNavigator({ categories, items, selectedItemId, onSelectItem, onRefresh }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set([ROOT_CATEGORY_ID]))
+  const [linksOpenFor, setLinksOpenFor] = useState<string | null>(null)
 
   const catById = new Map(categories.map((c) => [c.id, c]))
   const itemById = new Map(items.map((i) => [i.id, i]))
@@ -89,6 +90,25 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
     onRefresh()
   }
 
+  const addUrl = async (cat: Category) => {
+    if (cat.urls.length >= MAX_CATEGORY_URLS) {
+      window.alert(`URL은 최대 ${MAX_CATEGORY_URLS}개까지 등록할 수 있습니다.`)
+      return
+    }
+    const url = window.prompt('URL 입력')
+    if (!url) return
+    await api.updateCategoryUrls(cat.id, [...cat.urls, url])
+    onRefresh()
+  }
+
+  const removeUrl = async (cat: Category, index: number) => {
+    await api.updateCategoryUrls(
+      cat.id,
+      cat.urls.filter((_, i) => i !== index),
+    )
+    onRefresh()
+  }
+
   const renderCategory = (id: string, depth: number) => {
     const cat = catById.get(id)
     if (!cat) return null
@@ -104,9 +124,16 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
             title={id !== ROOT_CATEGORY_ID ? '더블클릭하여 이름 변경' : undefined}
             onDoubleClick={() => id !== ROOT_CATEGORY_ID && renameFolder(id, cat.name)}
           >
-            {cat.name}
+            <span className="folder-label">{cat.name}</span>
           </span>
           <span className="tree-actions">
+            <button
+              title="관련 링크"
+              className={linksOpenFor === id ? 'active' : ''}
+              onClick={() => setLinksOpenFor(linksOpenFor === id ? null : id)}
+            >
+              🔗{cat.urls.length > 0 ? cat.urls.length : ''}
+            </button>
             <button title="하위 폴더 추가" onClick={() => addFolder(id)}>+F</button>
             <button title="아이템 추가" onClick={() => addItem(id)}>+I</button>
             {id !== ROOT_CATEGORY_ID && (
@@ -114,6 +141,27 @@ export function TreeNavigator({ categories, items, selectedItemId, onSelectItem,
             )}
           </span>
         </div>
+        {linksOpenFor === id && (
+          <div className="links-panel" style={{ paddingLeft: depth * 14 + 20 }}>
+            {cat.urls.map((url, i) => (
+              <div className="links-panel-row" key={i}>
+                <a href={url} target="_blank" rel="noreferrer">
+                  {url}
+                </a>
+                <button title="링크 삭제" onClick={() => removeUrl(cat, i)}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              className="links-panel-add"
+              disabled={cat.urls.length >= MAX_CATEGORY_URLS}
+              onClick={() => addUrl(cat)}
+            >
+              + URL 추가 ({cat.urls.length}/{MAX_CATEGORY_URLS})
+            </button>
+          </div>
+        )}
         {isExpanded && (
           <div className="tree-children">
             {cat.child_ids.map((childId) => renderCategory(childId, depth + 1))}

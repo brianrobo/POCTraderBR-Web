@@ -15,6 +15,7 @@ class CategoryORM(Base):
     name: Mapped[str] = mapped_column(Text)
     parent_id: Mapped[Optional[str]] = mapped_column(ForeignKey("categories.id"), nullable=True)
     position: Mapped[int] = mapped_column(default=0)
+    urls: Mapped[str] = mapped_column(Text, default="[]")
 
 
 class ItemORM(Base):
@@ -38,3 +39,5 @@ class PageORM(Base):
     image_a_strokes: Mapped[str] = mapped_column(Text, default="[]")
     image_b_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     image_b_strokes: Mapped[str] = mapped_column(Text, default="[]")
+    stock_name_a: Mapped[str] = mapped_column(Text, default="")
+    stock_name_b: Mapped[str] = mapped_column(Text, default="")

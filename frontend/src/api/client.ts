@@ -4,7 +4,10 @@ export interface Category {
   parent_id: string | null
   child_ids: string[]
   item_ids: string[]
+  urls: string[]
 }
+
+export const MAX_CATEGORY_URLS = 10
 
 export interface Item {
   id: string
@@ -31,6 +34,8 @@ export interface Page {
   updated_at: number
   image_a: ImageSlot | null
   image_b: ImageSlot | null
+  stock_name_a: string
+  stock_name_b: string
 }
 
 export const ROOT_CATEGORY_ID = '__ROOT__'
@@ -55,6 +60,8 @@ export const api = {
     request<Category>('/api/categories', { method: 'POST', body: JSON.stringify({ name, parent_id }) }),
   renameCategory: (id: string, name: string) =>
     request<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  updateCategoryUrls: (id: string, urls: string[]) =>
+    request<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify({ urls }) }),
   deleteCategory: (id: string) =>
     request<{ ok: boolean }>(`/api/categories/${id}`, { method: 'DELETE' }),
 
@@ -71,6 +78,11 @@ export const api = {
     request<Page>('/api/pages', { method: 'POST', body: JSON.stringify({ item_id }) }),
   updatePageNote: (id: string, note_html: string) =>
     request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ note_html }) }),
+  updateStockName: (id: string, slot: 'a' | 'b', name: string) =>
+    request<Page>(`/api/pages/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(slot === 'a' ? { stock_name_a: name } : { stock_name_b: name }),
+    }),
   deletePage: (id: string) => request<{ ok: boolean }>(`/api/pages/${id}`, { method: 'DELETE' }),
 
   uploadImage: (pageId: string, slot: 'a' | 'b', file: File) => {

@@ -21,7 +21,14 @@ def category_to_api(session: Session, row: CategoryORM) -> Category:
             select(ItemORM.id).where(ItemORM.category_id == row.id).order_by(ItemORM.position)
         ).scalars()
     )
-    return Category(id=row.id, name=row.name, parent_id=row.parent_id, child_ids=child_ids, item_ids=item_ids)
+    return Category(
+        id=row.id,
+        name=row.name,
+        parent_id=row.parent_id,
+        child_ids=child_ids,
+        item_ids=item_ids,
+        urls=json.loads(row.urls),
+    )
 
 
 def item_to_api(session: Session, row: ItemORM) -> Item:
@@ -46,6 +53,8 @@ def page_to_api(row: PageORM) -> Page:
         updated_at=row.updated_at,
         image_a=_slot_from_row(row.image_a_path, row.image_a_strokes),
         image_b=_slot_from_row(row.image_b_path, row.image_b_strokes),
+        stock_name_a=row.stock_name_a,
+        stock_name_b=row.stock_name_b,
     )
 
 

@@ -35,6 +35,8 @@ class Page(BaseModel):
     updated_at: float = Field(default_factory=now)
     image_a: Optional[ImageSlot] = None
     image_b: Optional[ImageSlot] = None
+    stock_name_a: str = ""
+    stock_name_b: str = ""
 
 
 class Item(BaseModel):
@@ -44,9 +46,13 @@ class Item(BaseModel):
     page_ids: List[str] = Field(default_factory=list)
 
 
+MAX_CATEGORY_URLS = 10
+
+
 class Category(BaseModel):
     id: str
     name: str
     parent_id: Optional[str] = None
     child_ids: List[str] = Field(default_factory=list)
     item_ids: List[str] = Field(default_factory=list)
+    urls: List[str] = Field(default_factory=list)

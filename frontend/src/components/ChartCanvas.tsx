@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Canvas, FabricImage, Path, PencilBrush, Point, type TPointerEventInfo, type TPointerEvent } from 'fabric'
 import { api, type ImageSlot, type Page, type Stroke } from '../api/client'
 
-type Mode = 'draw' | 'pan'
+type Mode = 'none' | 'draw' | 'pan'
 
 const COLORS = ['#ff3c3c', '#2d6bff', '#222222']
 
@@ -37,13 +37,33 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
   const currentImgRef = useRef<FabricImage | null>(null)
   const placementRef = useRef<Placement>({ scale: 1, left: 0, top: 0 })
   const strokesRef = useRef<Stroke[]>([])
-  const [mode, setMode] = useState<Mode>('draw')
+  const modeRef = useRef<Mode>('none')
+  const [mode, setMode] = useState<Mode>('none')
   const [color, setColor] = useState(COLORS[0])
   const [penWidth, setPenWidth] = useState(3)
   const [uploading, setUploading] = useState(false)
+  const stockNameSaveTimer = useRef<number | null>(null)
+  const [stockName, setStockName] = useState(slot === 'a' ? page.stock_name_a : page.stock_name_b)
 
   const imageSlot: ImageSlot | null = slot === 'a' ? page.image_a : page.image_b
   const imageUrl = imageSlot ? `/uploads/${imageSlot.path}` : null
+  const savedStockName = slot === 'a' ? page.stock_name_a : page.stock_name_b
+
+  // Keep the input in sync when the underlying page data changes from
+  // elsewhere (e.g. switching pages), without fighting the user's typing.
+  useEffect(() => {
+    setStockName(savedStockName)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page.id, savedStockName])
+
+  function handleStockNameChange(value: string) {
+    setStockName(value)
+    if (stockNameSaveTimer.current) window.clearTimeout(stockNameSaveTimer.current)
+    stockNameSaveTimer.current = window.setTimeout(async () => {
+      const updated = await api.updateStockName(page.id, slot, value)
+      onPageUpdate(updated)
+    }, 500)
+  }
 
   // ---- Fabric canvas lifecycle (mounted once per component instance) -----
 
@@ -52,7 +72,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     const canvas = new Canvas(elRef.current, { selection: false })
     canvasRef.current = canvas
     canvas.freeDrawingBrush = new PencilBrush(canvas)
-    canvas.isDrawingMode = true
+    canvas.isDrawingMode = false
 
     const resize = () => syncAndFit(canvas)
     resize()
@@ -79,7 +99,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
     let lastX = 0
     let lastY = 0
     canvas.on('mouse:down', (opt: TPointerEventInfo<TPointerEvent>) => {
-      if (canvas.isDrawingMode) return
+      if (modeRef.current !== 'pan') return
       const e = opt.e as MouseEvent
       isPanning = true
       lastX = e.clientX
@@ -137,6 +157,7 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
   }, [imageUrl])
 
   useEffect(() => {
+    modeRef.current = mode
     const canvas = canvasRef.current
     if (!canvas) return
     canvas.isDrawingMode = mode === 'draw'
@@ -376,6 +397,15 @@ export function ChartCanvas({ page, slot, onPageUpdate }: Props) {
           max={12}
           value={penWidth}
           onChange={(e) => setPenWidth(Number(e.target.value))}
+        />
+      </div>
+      <div className="chart-stockname-row">
+        <input
+          type="text"
+          className="stockname-input"
+          placeholder={`종목명 ${slot.toUpperCase()}`}
+          value={stockName}
+          onChange={(e) => handleStockNameChange(e.target.value)}
         />
       </div>
       <div

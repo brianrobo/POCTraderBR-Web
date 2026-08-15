@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .db import Base, SessionLocal, engine
+from .db import SessionLocal, ensure_schema
 from .models import ROOT_CATEGORY_ID
 from .orm import CategoryORM
 from .paths import ASSETS_DIR, DATA_DIR
@@ -18,7 +18,7 @@ FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
-Base.metadata.create_all(bind=engine)
+ensure_schema()
 
 with SessionLocal() as _session:
     if _session.get(CategoryORM, ROOT_CATEGORY_ID) is None:

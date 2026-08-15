@@ -21,6 +21,8 @@ class PageCreate(BaseModel):
 
 class PageUpdate(BaseModel):
     note_html: Optional[str] = None
+    stock_name_a: Optional[str] = None
+    stock_name_b: Optional[str] = None
 
 
 class StrokesUpdate(BaseModel):
@@ -68,6 +70,10 @@ def update_page(page_id: str, payload: PageUpdate, session: Session = Depends(ge
         raise HTTPException(404, "not found")
     if payload.note_html is not None:
         row.note_html = payload.note_html
+    if payload.stock_name_a is not None:
+        row.stock_name_a = payload.stock_name_a
+    if payload.stock_name_b is not None:
+        row.stock_name_b = payload.stock_name_b
     row.updated_at = now()
     session.commit()
     session.refresh(row)

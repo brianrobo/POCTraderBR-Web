@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..crud import category_to_api, next_position
 from ..db import get_session
-from ..models import Category, ROOT_CATEGORY_ID, new_id
+from ..models import Category, MAX_CATEGORY_URLS, ROOT_CATEGORY_ID, new_id
 from ..orm import CategoryORM, ItemORM
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
@@ -22,6 +23,7 @@ class CategoryCreate(BaseModel):
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     parent_id: Optional[str] = None
+    urls: Optional[List[str]] = None
 
 
 @router.get("", response_model=List[Category])
@@ -60,6 +62,10 @@ def update_category(category_id: str, payload: CategoryUpdate, session: Session 
             raise HTTPException(404, "parent category not found")
         row.parent_id = payload.parent_id
         row.position = next_position(session, CategoryORM, parent_id=payload.parent_id)
+    if payload.urls is not None:
+        if len(payload.urls) > MAX_CATEGORY_URLS:
+            raise HTTPException(400, f"at most {MAX_CATEGORY_URLS} urls allowed")
+        row.urls = json.dumps(payload.urls)
     session.commit()
     session.refresh(row)
     return category_to_api(session, row)
