@@ -3,6 +3,8 @@ import { api, type Category, type Item } from './api/client'
 import { TreeNavigator } from './components/TreeNavigator'
 import { PageView } from './components/PageView'
 import { CategoryNoteView } from './components/CategoryNoteView'
+import { ItemDescriptionInput } from './components/ItemDescriptionInput'
+import { TodoPanel } from './components/TodoPanel'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -105,21 +107,25 @@ export default function App() {
     <div className="app-layout">
       <aside className="sidebar" style={{ width: sidebarWidth }}>
         <h1 className="app-title">POCTraderBR</h1>
-        <TreeNavigator
-          categories={categories}
-          items={items}
-          selectedItemId={selectedItemId}
-          selectedCategoryId={selectedCategoryId}
-          onSelectItem={(id) => setSelection({ type: 'item', id })}
-          onSelectCategory={(id) => setSelection({ type: 'category', id })}
-          onRefresh={refresh}
-        />
+        <div className="tree-scroll">
+          <TreeNavigator
+            categories={categories}
+            items={items}
+            selectedItemId={selectedItemId}
+            selectedCategoryId={selectedCategoryId}
+            onSelectItem={(id) => setSelection({ type: 'item', id })}
+            onSelectCategory={(id) => setSelection({ type: 'category', id })}
+            onRefresh={refresh}
+          />
+        </div>
+        <TodoPanel />
       </aside>
       <div className="sidebar-resizer" onMouseDown={startResize} />
       <main className="main-panel">
         {selectedItem ? (
           <>
             <h2 className="item-title">{selectedItem.name}</h2>
+            <ItemDescriptionInput item={selectedItem} onRefresh={refresh} />
             <PageView item={selectedItem} />
           </>
         ) : selectedCategory ? (

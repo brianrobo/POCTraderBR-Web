@@ -15,6 +15,14 @@ export interface Item {
   name: string
   category_id: string
   page_ids: string[]
+  description: string
+}
+
+export interface Todo {
+  id: string
+  date: string
+  text: string
+  done: boolean
 }
 
 export interface Stroke {
@@ -96,6 +104,8 @@ export const api = {
     request<Item>('/api/items', { method: 'POST', body: JSON.stringify({ name, category_id }) }),
   renameItem: (id: string, name: string) =>
     request<Item>(`/api/items/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  updateItemDescription: (id: string, description: string) =>
+    request<Item>(`/api/items/${id}`, { method: 'PATCH', body: JSON.stringify({ description }) }),
   moveItem: (id: string, direction: 'up' | 'down') =>
     request<{ ok: boolean }>(`/api/items/${id}/move`, { method: 'POST', body: JSON.stringify({ direction }) }),
   deleteItem: (id: string) => request<{ ok: boolean }>(`/api/items/${id}`, { method: 'DELETE' }),
@@ -127,4 +137,11 @@ export const api = {
     request<Page>(`/api/pages/${pageId}/image/${slot}`, { method: 'DELETE' }),
   updateStrokes: (pageId: string, slot: ImageSlotKey, strokes: Stroke[]) =>
     request<Page>(`/api/pages/${pageId}/strokes/${slot}`, { method: 'PUT', body: JSON.stringify({ strokes }) }),
+
+  listTodos: (date: string) => request<Todo[]>(`/api/todos?date=${date}`),
+  createTodo: (date: string, text: string) =>
+    request<Todo>('/api/todos', { method: 'POST', body: JSON.stringify({ date, text }) }),
+  updateTodo: (id: string, patch: { text?: string; done?: boolean }) =>
+    request<Todo>(`/api/todos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteTodo: (id: string) => request<{ ok: boolean }>(`/api/todos/${id}`, { method: 'DELETE' }),
 }

@@ -3,6 +3,14 @@ import { api, ROOT_CATEGORY_ID, type Category, type Item } from '../api/client'
 
 const EXPANDED_KEY = 'poctrader:expandedCategories'
 
+function todayPrefix(): string {
+  const d = new Date()
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `(${yy}.${mm}.${dd})`
+}
+
 function loadExpanded(): Set<string> {
   const raw = localStorage.getItem(EXPANDED_KEY)
   if (raw) {
@@ -82,7 +90,7 @@ export function TreeNavigator({
   }
 
   const addItem = async (categoryId: string) => {
-    const name = window.prompt('종목/아이템 이름')
+    const name = window.prompt('종목/아이템 이름', todayPrefix())
     if (!name) return
     await api.createItem(name, categoryId)
     onRefresh()

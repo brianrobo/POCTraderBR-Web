@@ -22,6 +22,7 @@ class ItemCreate(BaseModel):
 class ItemUpdate(BaseModel):
     name: Optional[str] = None
     category_id: Optional[str] = None
+    description: Optional[str] = None
 
 
 class ItemMove(BaseModel):
@@ -64,6 +65,8 @@ def update_item(item_id: str, payload: ItemUpdate, session: Session = Depends(ge
             raise HTTPException(404, "category not found")
         row.category_id = payload.category_id
         row.position = next_position(session, ItemORM, category_id=payload.category_id)
+    if payload.description is not None:
+        row.description = payload.description
     session.commit()
     session.refresh(row)
     return item_to_api(session, row)

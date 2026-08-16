@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Text
+from sqlalchemy import ForeignKey, Index, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -26,6 +26,7 @@ class ItemORM(Base):
     name: Mapped[str] = mapped_column(Text)
     category_id: Mapped[str] = mapped_column(ForeignKey("categories.id"))
     position: Mapped[int] = mapped_column(default=0)
+    description: Mapped[str] = mapped_column(Text, default="")
 
 
 class PageORM(Base):
@@ -50,3 +51,14 @@ class PageORM(Base):
     stock_name_a2: Mapped[str] = mapped_column(Text, default="")
     stock_name_b: Mapped[str] = mapped_column(Text, default="")
     stock_name_b2: Mapped[str] = mapped_column(Text, default="")
+
+
+class TodoORM(Base):
+    __tablename__ = "todos"
+    __table_args__ = (Index("ix_todos_date", "date"),)
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    date: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)
+    done: Mapped[bool] = mapped_column(default=False)
+    position: Mapped[int] = mapped_column(default=0)

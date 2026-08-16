@@ -53,6 +53,7 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("pages", "stock_name_b2", "ALTER TABLE pages ADD COLUMN stock_name_b2 TEXT DEFAULT ''"),
     ("pages", "note_html_b", "ALTER TABLE pages ADD COLUMN note_html_b TEXT DEFAULT ''"),
     ("categories", "note_html", "ALTER TABLE categories ADD COLUMN note_html TEXT DEFAULT ''"),
+    ("items", "description", "ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''"),
 ]
 
 # The single shared note_html column became per-column note_html_a/note_html_b.

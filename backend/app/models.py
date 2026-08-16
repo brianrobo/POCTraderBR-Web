@@ -66,6 +66,7 @@ class Item(BaseModel):
     name: str
     category_id: str
     page_ids: List[str] = Field(default_factory=list)
+    description: str = ""
 
 
 MAX_CATEGORY_URLS = 10
@@ -79,3 +80,10 @@ class Category(BaseModel):
     item_ids: List[str] = Field(default_factory=list)
     urls: List[str] = Field(default_factory=list)
     note_html: str = ""
+
+
+class Todo(BaseModel):
+    id: str
+    date: str  # "YYYY-MM-DD"
+    text: str
+    done: bool = False

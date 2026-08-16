@@ -6,8 +6,8 @@ from typing import Optional, Type
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .models import Category, ImageSlot, Item, Page, Stroke
-from .orm import CategoryORM, ItemORM, PageORM
+from .models import Category, ImageSlot, Item, Page, Stroke, Todo
+from .orm import CategoryORM, ItemORM, PageORM, TodoORM
 
 
 def category_to_api(session: Session, row: CategoryORM) -> Category:
@@ -36,7 +36,9 @@ def item_to_api(session: Session, row: ItemORM) -> Item:
     page_ids = list(
         session.execute(select(PageORM.id).where(PageORM.item_id == row.id).order_by(PageORM.position)).scalars()
     )
-    return Item(id=row.id, name=row.name, category_id=row.category_id, page_ids=page_ids)
+    return Item(
+        id=row.id, name=row.name, category_id=row.category_id, page_ids=page_ids, description=row.description
+    )
 
 
 # Per-slot ORM column names, keyed by the slot id used in the API
@@ -80,6 +82,10 @@ def page_to_api(row: PageORM) -> Page:
         stock_name_b=row.stock_name_b,
         stock_name_b2=row.stock_name_b2,
     )
+
+
+def todo_to_api(row: TodoORM) -> Todo:
+    return Todo(id=row.id, date=row.date, text=row.text, done=row.done)
 
 
 def next_position(session: Session, model: Type, **filters: str) -> int:
