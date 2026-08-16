@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { Canvas, FabricImage, Path, PencilBrush, Point, type TPointerEventInfo, type TPointerEvent } from 'fabric'
+import {
+  Canvas,
+  FabricImage,
+  IText,
+  Path,
+  PencilBrush,
+  Point,
+  type TPointerEventInfo,
+  type TPointerEvent,
+} from 'fabric'
 import { api, type ImageSlot, type ImageSlotKey, type Page, type Stroke } from '../api/client'
 
-type Mode = 'none' | 'draw' | 'pan'
+type Mode = 'none' | 'draw' | 'pan' | 'text'
 
-const COLORS = ['#ff3c3c', '#2d6bff', '#222222']
+const COLORS = ['#ff3c3c', '#2d6bff', '#f5c518', '#39ff14', '#222222']
+const DEFAULT_FONT_SIZE = 24
 
 interface Props {
   page: Page
@@ -46,10 +56,10 @@ function getStockNameData(page: Page, slot: ImageSlotKey): string {
  * user's own interactive pan/zoom gestures (mouse wheel / drag), so the two
  * concerns never fight each other.
  *
- * Strokes are drawn with fabric's PencilBrush, which records points in the
- * canvas's "world" coordinate space. To keep strokes visually attached to
- * the image regardless of window size, we convert world <-> image-pixel
- * coordinates using this placement whenever we save or (re)draw a stroke.
+ * Annotations (freehand paths and text labels) are placed in that same
+ * "world" coordinate space. To keep them visually attached to the image
+ * regardless of window size, we convert world <-> image-pixel coordinates
+ * using this placement whenever we save or (re)draw an annotation.
  */
 interface Placement {
   scale: number
@@ -65,6 +75,7 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
   const placementRef = useRef<Placement>({ scale: 1, left: 0, top: 0 })
   const strokesRef = useRef<Stroke[]>([])
   const modeRef = useRef<Mode>('none')
+  const colorRef = useRef(COLORS[0])
   const [mode, setMode] = useState<Mode>('none')
   const [color, setColor] = useState(COLORS[0])
   const [penWidth, setPenWidth] = useState(3)
@@ -146,6 +157,15 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
       isPanning = false
     })
 
+    // Click-to-place a new text label (only when the click isn't on an
+    // existing object — clicking an existing label lets fabric select/edit
+    // it normally).
+    canvas.on('mouse:down', (opt: TPointerEventInfo<TPointerEvent>) => {
+      if (modeRef.current !== 'text' || opt.target) return
+      const pointer = canvas.getScenePoint(opt.e)
+      addText(canvas, pointer.x, pointer.y)
+    })
+
     canvas.on('path:created', () => {
       void persistStrokes()
     })
@@ -188,9 +208,18 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
     const canvas = canvasRef.current
     if (!canvas) return
     canvas.isDrawingMode = mode === 'draw'
+    if (mode !== 'text') {
+      // Leaving text mode: stop editing/deselect so a stray click elsewhere
+      // doesn't leave a label in an odd half-edited state.
+      const active = canvas.getActiveObject()
+      if (active && active.type === 'i-text') (active as IText).exitEditing()
+      canvas.discardActiveObject()
+      canvas.requestRenderAll()
+    }
   }, [mode])
 
   useEffect(() => {
+    colorRef.current = color
     const canvas = canvasRef.current
     if (!canvas?.freeDrawingBrush) return
     canvas.freeDrawingBrush.color = color
@@ -225,7 +254,7 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
   }
 
   /** Re-fits the image to the current canvas size, resets interactive
-   * pan/zoom, and rebuilds stroke paths from canonical image-pixel data so
+   * pan/zoom, and rebuilds annotations from canonical image-pixel data so
    * they stay aligned with the (possibly newly-scaled) image. */
   function fitAndRedraw(canvas: Canvas) {
     const img = currentImgRef.current
@@ -248,14 +277,29 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
     canvas.requestRenderAll()
   }
 
+  function isAnnotation(o: { type?: string }): boolean {
+    return o.type === 'path' || o.type === 'i-text'
+  }
+
   function redrawStrokes(canvas: Canvas, strokes: Stroke[]) {
-    for (const obj of canvas.getObjects().filter((o) => o.type === 'path')) {
+    for (const obj of canvas.getObjects().filter(isAnnotation)) {
       canvas.remove(obj)
     }
     const { scale, left, top } = placementRef.current
     for (const s of strokes) {
-      const worldPoints: [number, number][] = s.points.map(([x, y]) => [x * scale + left, y * scale + top])
-      canvas.add(pointsToPath(worldPoints, s.color, s.width * scale))
+      if (s.kind === 'text') {
+        const textObj = new IText(s.text, {
+          left: s.x * scale + left,
+          top: s.y * scale + top,
+          fontSize: s.font_size * scale,
+          fill: s.color,
+        })
+        setupTextObject(textObj)
+        canvas.add(textObj)
+      } else {
+        const worldPoints: [number, number][] = s.points.map(([x, y]) => [x * scale + left, y * scale + top])
+        canvas.add(pointsToPath(worldPoints, s.color, s.width * scale))
+      }
     }
     canvas.requestRenderAll()
   }
@@ -282,11 +326,63 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
     return pts
   }
 
+  // Keep text labels simple: movable and editable, but not independently
+  // resizable/rotatable — we only persist position + font size, so letting
+  // users scale/rotate would silently be lost on the next save/reload.
+  function setupTextObject(textObj: IText) {
+    textObj.set({
+      selectable: true,
+      evented: true,
+      hasControls: false,
+      lockScalingX: true,
+      lockScalingY: true,
+      lockRotation: true,
+    })
+    textObj.on('editing:exited', () => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      if (!textObj.text?.trim()) {
+        canvas.remove(textObj)
+        canvas.requestRenderAll()
+      }
+      void persistStrokes()
+    })
+  }
+
+  function addText(canvas: Canvas, worldX: number, worldY: number) {
+    const textObj = new IText('텍스트', {
+      left: worldX,
+      top: worldY,
+      fontSize: DEFAULT_FONT_SIZE,
+      fill: colorRef.current,
+    })
+    setupTextObject(textObj)
+    canvas.add(textObj)
+    canvas.setActiveObject(textObj)
+    textObj.enterEditing()
+    textObj.selectAll()
+    canvas.requestRenderAll()
+  }
+
+  function handleCanvasKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const active = canvas.getActiveObject()
+    if (!active || active.type !== 'i-text') return
+    if ((active as IText).isEditing) return // let normal text-editing backspace through
+    e.preventDefault()
+    canvas.remove(active)
+    canvas.discardActiveObject()
+    canvas.requestRenderAll()
+    void persistStrokes()
+  }
+
   function undoLastStroke() {
     const canvas = canvasRef.current
     if (!canvas) return
-    const paths = canvas.getObjects().filter((o) => o.type === 'path')
-    const last = paths[paths.length - 1]
+    const objs = canvas.getObjects().filter(isAnnotation)
+    const last = objs[objs.length - 1]
     if (!last) return
     canvas.remove(last)
     canvas.requestRenderAll()
@@ -296,10 +392,10 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
   function clearStrokes() {
     const canvas = canvasRef.current
     if (!canvas) return
-    const paths = canvas.getObjects().filter((o) => o.type === 'path')
-    if (paths.length === 0) return
+    const objs = canvas.getObjects().filter(isAnnotation)
+    if (objs.length === 0) return
     if (!window.confirm('이 이미지에 그린 내용을 모두 지울까요?')) return
-    for (const p of paths) canvas.remove(p)
+    for (const o of objs) canvas.remove(o)
     canvas.requestRenderAll()
     void persistStrokes()
   }
@@ -310,12 +406,33 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
     const { scale, left, top } = placementRef.current
     const strokes: Stroke[] = canvas
       .getObjects()
-      .filter((o): o is Path => o.type === 'path')
-      .map((p) => ({
-        color: String(p.stroke ?? color),
-        width: (p.strokeWidth ?? penWidth) / scale,
-        points: pathToWorldPoints(p).map(([x, y]): [number, number] => [(x - left) / scale, (y - top) / scale]),
-      }))
+      .filter(isAnnotation)
+      .map((o) => {
+        if (o.type === 'i-text') {
+          const t = o as IText
+          return {
+            kind: 'text',
+            color: String(t.fill ?? colorRef.current),
+            width: 0,
+            points: [],
+            text: t.text ?? '',
+            font_size: (t.fontSize ?? DEFAULT_FONT_SIZE) / scale,
+            x: ((t.left ?? 0) - left) / scale,
+            y: ((t.top ?? 0) - top) / scale,
+          }
+        }
+        const p = o as Path
+        return {
+          kind: 'path',
+          color: String(p.stroke ?? colorRef.current),
+          width: (p.strokeWidth ?? penWidth) / scale,
+          points: pathToWorldPoints(p).map(([x, y]): [number, number] => [(x - left) / scale, (y - top) / scale]),
+          text: '',
+          font_size: 0,
+          x: 0,
+          y: 0,
+        }
+      })
     strokesRef.current = strokes
     const updated = await api.updateStrokes(page.id, slot, strokes)
     onPageUpdate(updated)
@@ -391,6 +508,9 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
         <button type="button" className={mode === 'draw' ? 'active' : ''} onClick={() => setMode('draw')}>
           펜
         </button>
+        <button type="button" className={mode === 'text' ? 'active' : ''} onClick={() => setMode('text')}>
+          텍스트
+        </button>
         <button type="button" className={mode === 'pan' ? 'active' : ''} onClick={() => setMode('pan')}>
           이동
         </button>
@@ -440,6 +560,7 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
         ref={wrapRef}
         tabIndex={0}
         onPaste={handlePaste}
+        onKeyDown={handleCanvasKeyDown}
         title="클릭 후 Ctrl+V로 이미지 붙여넣기"
       >
         <canvas ref={elRef} />

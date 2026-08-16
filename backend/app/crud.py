@@ -66,7 +66,8 @@ def page_to_api(row: PageORM) -> Page:
     return Page(
         id=row.id,
         item_id=row.item_id,
-        note_html=row.note_html,
+        note_html_a=row.note_html_a,
+        note_html_b=row.note_html_b,
         updated_at=row.updated_at,
         layout=row.layout,
         image_a=_slot_from_row(row.image_a_path, row.image_a_strokes),

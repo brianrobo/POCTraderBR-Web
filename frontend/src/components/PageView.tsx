@@ -82,14 +82,6 @@ export function PageView({ item }: Props) {
       </div>
       {selectedPage ? (
         <div className="page-body">
-          <NoteEditor
-            key={selectedPage.id}
-            html={selectedPage.note_html}
-            onSave={async (html) => {
-              const updated = await api.updatePageNote(selectedPage.id, html)
-              updatePage(updated)
-            }}
-          />
           <div className="layout-toggle">
             <button
               type="button"
@@ -106,39 +98,63 @@ export function PageView({ item }: Props) {
               4단
             </button>
           </div>
-          <div className={`charts-row ${selectedPage.layout === '4' ? 'layout-4' : ''}`}>
-            <ChartCanvas
-              key={`${selectedPage.id}-a`}
-              page={selectedPage}
-              slot="a"
-              label={selectedPage.layout === '4' ? 'A 상단' : 'A'}
-              onPageUpdate={updatePage}
-            />
-            <ChartCanvas
-              key={`${selectedPage.id}-b`}
-              page={selectedPage}
-              slot="b"
-              label={selectedPage.layout === '4' ? 'B 상단' : 'B'}
-              onPageUpdate={updatePage}
-            />
-            {selectedPage.layout === '4' && (
-              <>
+          <div className="page-columns">
+            <div className="page-column">
+              <NoteEditor
+                key={`${selectedPage.id}-note-a`}
+                html={selectedPage.note_html_a}
+                onSave={async (html) => {
+                  const updated = await api.updatePageNote(selectedPage.id, 'a', html)
+                  updatePage(updated)
+                }}
+              />
+              <div className="column-charts">
                 <ChartCanvas
-                  key={`${selectedPage.id}-a2`}
+                  key={`${selectedPage.id}-a`}
                   page={selectedPage}
-                  slot="a2"
-                  label="A 하단"
+                  slot="a"
+                  label={selectedPage.layout === '4' ? 'A 상단' : 'A'}
                   onPageUpdate={updatePage}
                 />
+                {selectedPage.layout === '4' && (
+                  <ChartCanvas
+                    key={`${selectedPage.id}-a2`}
+                    page={selectedPage}
+                    slot="a2"
+                    label="A 하단"
+                    onPageUpdate={updatePage}
+                  />
+                )}
+              </div>
+            </div>
+            <div className="page-column">
+              <NoteEditor
+                key={`${selectedPage.id}-note-b`}
+                html={selectedPage.note_html_b}
+                onSave={async (html) => {
+                  const updated = await api.updatePageNote(selectedPage.id, 'b', html)
+                  updatePage(updated)
+                }}
+              />
+              <div className="column-charts">
                 <ChartCanvas
-                  key={`${selectedPage.id}-b2`}
+                  key={`${selectedPage.id}-b`}
                   page={selectedPage}
-                  slot="b2"
-                  label="B 하단"
+                  slot="b"
+                  label={selectedPage.layout === '4' ? 'B 상단' : 'B'}
                   onPageUpdate={updatePage}
                 />
-              </>
-            )}
+                {selectedPage.layout === '4' && (
+                  <ChartCanvas
+                    key={`${selectedPage.id}-b2`}
+                    page={selectedPage}
+                    slot="b2"
+                    label="B 하단"
+                    onPageUpdate={updatePage}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       ) : (

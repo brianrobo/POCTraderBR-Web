@@ -51,12 +51,24 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("pages", "image_b2_strokes", "ALTER TABLE pages ADD COLUMN image_b2_strokes TEXT DEFAULT '[]'"),
     ("pages", "stock_name_a2", "ALTER TABLE pages ADD COLUMN stock_name_a2 TEXT DEFAULT ''"),
     ("pages", "stock_name_b2", "ALTER TABLE pages ADD COLUMN stock_name_b2 TEXT DEFAULT ''"),
+    ("pages", "note_html_b", "ALTER TABLE pages ADD COLUMN note_html_b TEXT DEFAULT ''"),
+]
+
+# The single shared note_html column became per-column note_html_a/note_html_b.
+# Rename rather than add-and-drop so the existing note text isn't lost — it
+# becomes column A's note, and B starts blank.
+_RENAMED_COLUMNS: list[tuple[str, str, str]] = [
+    ("pages", "note_html", "note_html_a"),
 ]
 
 
 def ensure_schema() -> None:
     Base.metadata.create_all(bind=engine)
     with engine.connect() as conn:
+        for table, old, new in _RENAMED_COLUMNS:
+            existing = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))}
+            if old in existing and new not in existing:
+                conn.execute(text(f"ALTER TABLE {table} RENAME COLUMN {old} TO {new}"))
         for table, column, ddl in _ADDITIVE_COLUMNS:
             existing = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))}
             if column not in existing:

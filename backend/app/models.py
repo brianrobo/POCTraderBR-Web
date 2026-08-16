@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import List, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -18,9 +18,21 @@ def now() -> float:
 
 
 class Stroke(BaseModel):
+    """A single chart annotation — either a freehand path or a text label.
+
+    Both kinds share one list per image slot; `kind` tells them apart.
+    Old stored data has no `kind` key, which defaults to "path" so it
+    keeps loading unchanged.
+    """
+
+    kind: Literal["path", "text"] = "path"
     color: str = "#222222"
     width: float = 3.0
     points: List[Tuple[float, float]] = Field(default_factory=list)
+    text: str = ""
+    font_size: float = 20.0
+    x: float = 0.0
+    y: float = 0.0
 
 
 class ImageSlot(BaseModel):
@@ -35,7 +47,8 @@ LAYOUTS = ("2", "4")
 class Page(BaseModel):
     id: str
     item_id: str
-    note_html: str = ""
+    note_html_a: str = ""
+    note_html_b: str = ""
     updated_at: float = Field(default_factory=now)
     layout: str = "2"
     image_a: Optional[ImageSlot] = None

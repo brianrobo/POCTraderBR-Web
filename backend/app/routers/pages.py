@@ -20,7 +20,8 @@ class PageCreate(BaseModel):
 
 
 class PageUpdate(BaseModel):
-    note_html: Optional[str] = None
+    note_html_a: Optional[str] = None
+    note_html_b: Optional[str] = None
     layout: Optional[str] = None
     stock_name_a: Optional[str] = None
     stock_name_a2: Optional[str] = None
@@ -57,7 +58,8 @@ def create_page(payload: PageCreate, session: Session = Depends(get_session)) ->
         id=new_id(),
         item_id=payload.item_id,
         position=next_position(session, PageORM, item_id=payload.item_id),
-        note_html="",
+        note_html_a="",
+        note_html_b="",
         updated_at=now(),
     )
     session.add(row)
@@ -71,8 +73,10 @@ def update_page(page_id: str, payload: PageUpdate, session: Session = Depends(ge
     row = session.get(PageORM, page_id)
     if not row:
         raise HTTPException(404, "not found")
-    if payload.note_html is not None:
-        row.note_html = payload.note_html
+    if payload.note_html_a is not None:
+        row.note_html_a = payload.note_html_a
+    if payload.note_html_b is not None:
+        row.note_html_b = payload.note_html_b
     if payload.layout is not None and payload.layout != row.layout:
         if payload.layout not in LAYOUTS:
             raise HTTPException(400, f"layout must be one of {LAYOUTS}")

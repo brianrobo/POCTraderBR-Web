@@ -17,9 +17,14 @@ export interface Item {
 }
 
 export interface Stroke {
+  kind: 'path' | 'text'
   color: string
   width: number
   points: [number, number][]
+  text: string
+  font_size: number
+  x: number
+  y: number
 }
 
 export interface ImageSlot {
@@ -33,7 +38,8 @@ export type PageLayout = '2' | '4'
 export interface Page {
   id: string
   item_id: string
-  note_html: string
+  note_html_a: string
+  note_html_b: string
   updated_at: number
   layout: PageLayout
   image_a: ImageSlot | null
@@ -93,8 +99,11 @@ export const api = {
   getPage: (id: string) => request<Page>(`/api/pages/${id}`),
   createPage: (item_id: string) =>
     request<Page>('/api/pages', { method: 'POST', body: JSON.stringify({ item_id }) }),
-  updatePageNote: (id: string, note_html: string) =>
-    request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ note_html }) }),
+  updatePageNote: (id: string, column: 'a' | 'b', note_html: string) =>
+    request<Page>(`/api/pages/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(column === 'a' ? { note_html_a: note_html } : { note_html_b: note_html }),
+    }),
   updatePageLayout: (id: string, layout: PageLayout) =>
     request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ layout }) }),
   updateStockName: (id: string, slot: ImageSlotKey, name: string) =>
