@@ -1,6 +1,21 @@
 import { useEffect, useState } from 'react'
 import { api, ROOT_CATEGORY_ID, type Category, type Item } from '../api/client'
 
+const EXPANDED_KEY = 'poctrader:expandedCategories'
+
+function loadExpanded(): Set<string> {
+  const raw = localStorage.getItem(EXPANDED_KEY)
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return new Set([ROOT_CATEGORY_ID, ...parsed])
+    } catch {
+      // ignore malformed value
+    }
+  }
+  return new Set([ROOT_CATEGORY_ID])
+}
+
 interface Props {
   categories: Category[]
   items: Item[]
@@ -20,19 +35,18 @@ export function TreeNavigator({
   onSelectCategory,
   onRefresh,
 }: Props) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set([ROOT_CATEGORY_ID]))
+  const [expanded, setExpanded] = useState<Set<string>>(loadExpanded)
 
   const catById = new Map(categories.map((c) => [c.id, c]))
   const itemById = new Map(items.map((i) => [i.id, i]))
 
-  // Auto-expand the folder path to the selected item (e.g. one restored
-  // from localStorage on load) so it's actually visible in the tree.
+  // Auto-expand the folder path to the selected item/category (e.g. one
+  // restored from localStorage on load) so it's actually visible in the tree.
   useEffect(() => {
-    if (!selectedItemId) return
-    const item = itemById.get(selectedItemId)
-    if (!item) return
+    const startCatId = selectedItemId ? itemById.get(selectedItemId)?.category_id : selectedCategoryId
+    if (!startCatId) return
     const toExpand: string[] = []
-    let catId: string | undefined = item.category_id
+    let catId: string | undefined = startCatId
     while (catId) {
       toExpand.push(catId)
       catId = catById.get(catId)?.parent_id ?? undefined
@@ -44,7 +58,12 @@ export function TreeNavigator({
       return next
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedItemId, categories, items])
+  }, [selectedItemId, selectedCategoryId, categories, items])
+
+  // Persist which folders are open so the tree looks the same after a reload.
+  useEffect(() => {
+    localStorage.setItem(EXPANDED_KEY, JSON.stringify(Array.from(expanded)))
+  }, [expanded])
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
