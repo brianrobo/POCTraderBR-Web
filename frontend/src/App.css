@@ -261,6 +261,24 @@
   min-height: 80px;
 }
 
+.note-content .ProseMirror p {
+  margin: 0 0 4px;
+}
+
+.note-content .ProseMirror ul,
+.note-content .ProseMirror ol {
+  margin: 0 0 4px;
+  padding-left: 1.25em;
+}
+
+.note-content .ProseMirror li {
+  margin: 0;
+}
+
+.note-content .ProseMirror li p {
+  margin: 0;
+}
+
 .swatch {
   width: 20px;
   height: 20px;
