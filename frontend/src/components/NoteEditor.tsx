@@ -9,7 +9,7 @@ interface Props {
   onSave: (html: string) => void
 }
 
-const NOTE_COLORS = ['#222222', '#ff3c3c', '#2d6bff']
+const NOTE_COLORS = ['#222222', '#ff3c3c', '#2d6bff', '#f5c518', '#39ff14']
 
 export function NoteEditor({ html, onSave }: Props) {
   const saveTimer = useRef<number | null>(null)
