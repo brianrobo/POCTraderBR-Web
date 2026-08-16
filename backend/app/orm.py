@@ -16,6 +16,7 @@ class CategoryORM(Base):
     parent_id: Mapped[Optional[str]] = mapped_column(ForeignKey("categories.id"), nullable=True)
     position: Mapped[int] = mapped_column(default=0)
     urls: Mapped[str] = mapped_column(Text, default="[]")
+    note_html: Mapped[str] = mapped_column(Text, default="")
 
 
 class ItemORM(Base):

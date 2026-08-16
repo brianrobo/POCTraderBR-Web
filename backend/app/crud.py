@@ -28,6 +28,7 @@ def category_to_api(session: Session, row: CategoryORM) -> Category:
         child_ids=child_ids,
         item_ids=item_ids,
         urls=json.loads(row.urls),
+        note_html=row.note_html,
     )
 
 

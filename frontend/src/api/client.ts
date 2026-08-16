@@ -5,6 +5,7 @@ export interface Category {
   child_ids: string[]
   item_ids: string[]
   urls: string[]
+  note_html: string
 }
 
 export const MAX_CATEGORY_URLS = 10
@@ -83,6 +84,10 @@ export const api = {
     request<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
   updateCategoryUrls: (id: string, urls: string[]) =>
     request<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify({ urls }) }),
+  updateCategoryNote: (id: string, note_html: string) =>
+    request<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify({ note_html }) }),
+  moveCategory: (id: string, direction: 'up' | 'down') =>
+    request<{ ok: boolean }>(`/api/categories/${id}/move`, { method: 'POST', body: JSON.stringify({ direction }) }),
   deleteCategory: (id: string) =>
     request<{ ok: boolean }>(`/api/categories/${id}`, { method: 'DELETE' }),
 

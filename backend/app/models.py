@@ -78,3 +78,4 @@ class Category(BaseModel):
     child_ids: List[str] = Field(default_factory=list)
     item_ids: List[str] = Field(default_factory=list)
     urls: List[str] = Field(default_factory=list)
+    note_html: str = ""

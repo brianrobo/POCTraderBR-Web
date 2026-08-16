@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -24,6 +24,11 @@ class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     parent_id: Optional[str] = None
     urls: Optional[List[str]] = None
+    note_html: Optional[str] = None
+
+
+class CategoryMove(BaseModel):
+    direction: Literal["up", "down"]
 
 
 @router.get("", response_model=List[Category])
@@ -66,9 +71,28 @@ def update_category(category_id: str, payload: CategoryUpdate, session: Session 
         if len(payload.urls) > MAX_CATEGORY_URLS:
             raise HTTPException(400, f"at most {MAX_CATEGORY_URLS} urls allowed")
         row.urls = json.dumps(payload.urls)
+    if payload.note_html is not None:
+        row.note_html = payload.note_html
     session.commit()
     session.refresh(row)
     return category_to_api(session, row)
+
+
+@router.post("/{category_id}/move")
+def move_category(category_id: str, payload: CategoryMove, session: Session = Depends(get_session)) -> dict:
+    row = session.get(CategoryORM, category_id)
+    if not row:
+        raise HTTPException(404, "not found")
+    siblings = (
+        session.query(CategoryORM).filter_by(parent_id=row.parent_id).order_by(CategoryORM.position).all()
+    )
+    idx = next(i for i, s in enumerate(siblings) if s.id == category_id)
+    swap_idx = idx - 1 if payload.direction == "up" else idx + 1
+    if 0 <= swap_idx < len(siblings):
+        other = siblings[swap_idx]
+        row.position, other.position = other.position, row.position
+        session.commit()
+    return {"ok": True}
 
 
 @router.delete("/{category_id}")
