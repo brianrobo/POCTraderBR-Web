@@ -15,6 +15,13 @@ type Mode = 'none' | 'draw' | 'pan' | 'text'
 
 const COLORS = ['#ff3c3c', '#2d6bff', '#f5c518', '#39ff14', '#222222']
 const DEFAULT_FONT_SIZE = 24
+const PEN_WIDTH_KEY = 'poctrader:penWidth'
+
+function loadPenWidth(): number {
+  const raw = localStorage.getItem(PEN_WIDTH_KEY)
+  const n = raw ? Number(raw) : NaN
+  return Number.isFinite(n) && n >= 1 && n <= 12 ? n : 3
+}
 
 interface Props {
   page: Page
@@ -78,7 +85,7 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
   const colorRef = useRef(COLORS[0])
   const [mode, setMode] = useState<Mode>('none')
   const [color, setColor] = useState(COLORS[0])
-  const [penWidth, setPenWidth] = useState(3)
+  const [penWidth, setPenWidth] = useState(loadPenWidth)
   const [uploading, setUploading] = useState(false)
   const stockNameSaveTimer = useRef<number | null>(null)
   const [stockName, setStockName] = useState(getStockNameData(page, slot))
@@ -225,6 +232,11 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
     canvas.freeDrawingBrush.color = color
     canvas.freeDrawingBrush.width = penWidth
   }, [color, penWidth])
+
+  // Remember the last-used pen width across panes/pages/sessions.
+  useEffect(() => {
+    localStorage.setItem(PEN_WIDTH_KEY, String(penWidth))
+  }, [penWidth])
 
   // ---- Placement (cover-fit the image object; independent of vpt) --------
 
