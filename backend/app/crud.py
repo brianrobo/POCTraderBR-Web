@@ -6,8 +6,8 @@ from typing import Optional, Type
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .models import Category, ImageSlot, Item, Page, Stroke, Todo
-from .orm import CategoryORM, ItemORM, PageORM, TodoORM
+from .models import Category, CodeInfo, FormulaInfo, ImageSlot, Item, Page, Stroke, Todo
+from .orm import CategoryORM, CodeInfoORM, FormulaInfoORM, ItemORM, PageORM, TodoORM
 
 
 def category_to_api(session: Session, row: CategoryORM) -> Category:
@@ -86,6 +86,16 @@ def page_to_api(row: PageORM) -> Page:
 
 def todo_to_api(row: TodoORM) -> Todo:
     return Todo(id=row.id, date=row.date, text=row.text, done=row.done)
+
+
+def code_info_to_api(row: CodeInfoORM) -> CodeInfo:
+    return CodeInfo(id=row.id, code=row.code, description=row.description, created_at=row.created_at)
+
+
+def formula_info_to_api(row: FormulaInfoORM) -> FormulaInfo:
+    return FormulaInfo(
+        id=row.id, category=row.category, name=row.name, content=row.content, created_at=row.created_at
+    )
 
 
 def next_position(session: Session, model: Type, **filters: str) -> int:

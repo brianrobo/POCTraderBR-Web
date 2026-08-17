@@ -62,3 +62,22 @@ class TodoORM(Base):
     text: Mapped[str] = mapped_column(Text)
     done: Mapped[bool] = mapped_column(default=False)
     position: Mapped[int] = mapped_column(default=0)
+
+
+class CodeInfoORM(Base):
+    __tablename__ = "code_infos"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(Text)
+    description: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
+class FormulaInfoORM(Base):
+    __tablename__ = "formula_infos"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    category: Mapped[str] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(Text)
+    content: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[float] = mapped_column(default=0.0)

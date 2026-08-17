@@ -5,15 +5,22 @@ import { PageView } from './components/PageView'
 import { CategoryNoteView } from './components/CategoryNoteView'
 import { ItemDescriptionInput } from './components/ItemDescriptionInput'
 import { TodoPanel } from './components/TodoPanel'
+import { FormulaInfoPage } from './components/FormulaInfoPage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
 const SIDEBAR_WIDTH_KEY = 'poctrader:sidebarWidth'
+const ACTIVE_TAB_KEY = 'poctrader:activeTab'
 const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
+type Tab = 'notes' | 'reference'
 type Selection = { type: 'item' | 'category'; id: string } | null
+
+function loadActiveTab(): Tab {
+  return localStorage.getItem(ACTIVE_TAB_KEY) === 'reference' ? 'reference' : 'notes'
+}
 
 function loadLastSelection(): Selection {
   const raw = localStorage.getItem(LAST_SELECTION_KEY)
@@ -44,6 +51,7 @@ export default function App() {
   const [items, setItems] = useState<Item[]>([])
   const [selection, setSelection] = useState<Selection>(() => loadLastSelection())
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth)
+  const [activeTab, setActiveTab] = useState<Tab>(loadActiveTab)
   const widthRef = useRef(sidebarWidth)
   const resizingRef = useRef(false)
 
@@ -64,6 +72,10 @@ export default function App() {
       localStorage.removeItem(LAST_SELECTION_KEY)
     }
   }, [selection])
+
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_TAB_KEY, activeTab)
+  }, [activeTab])
 
   // Sidebar drag-to-resize. Width is tracked in a ref alongside state so the
   // final value is available for persisting on mouseup without a stale
@@ -104,36 +116,58 @@ export default function App() {
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId) ?? null
 
   return (
-    <div className="app-layout">
-      <aside className="sidebar" style={{ width: sidebarWidth }}>
-        <h1 className="app-title">POCTraderBR</h1>
-        <div className="tree-scroll">
-          <TreeNavigator
-            categories={categories}
-            items={items}
-            selectedItemId={selectedItemId}
-            selectedCategoryId={selectedCategoryId}
-            onSelectItem={(id) => setSelection({ type: 'item', id })}
-            onSelectCategory={(id) => setSelection({ type: 'category', id })}
-            onRefresh={refresh}
-          />
+    <div className="app-root">
+      <div className="top-tabs">
+        <button
+          type="button"
+          className={activeTab === 'notes' ? 'active' : ''}
+          onClick={() => setActiveTab('notes')}
+        >
+          트레이딩 노트
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'reference' ? 'active' : ''}
+          onClick={() => setActiveTab('reference')}
+        >
+          수식 정보
+        </button>
+      </div>
+      {activeTab === 'notes' ? (
+        <div className="app-layout">
+          <aside className="sidebar" style={{ width: sidebarWidth }}>
+            <h1 className="app-title">POCTraderBR</h1>
+            <div className="tree-scroll">
+              <TreeNavigator
+                categories={categories}
+                items={items}
+                selectedItemId={selectedItemId}
+                selectedCategoryId={selectedCategoryId}
+                onSelectItem={(id) => setSelection({ type: 'item', id })}
+                onSelectCategory={(id) => setSelection({ type: 'category', id })}
+                onRefresh={refresh}
+              />
+            </div>
+            <TodoPanel />
+          </aside>
+          <div className="sidebar-resizer" onMouseDown={startResize} />
+          <main className="main-panel">
+            {selectedItem ? (
+              <>
+                <h2 className="item-title">{selectedItem.name}</h2>
+                <ItemDescriptionInput item={selectedItem} onRefresh={refresh} />
+                <PageView item={selectedItem} />
+              </>
+            ) : selectedCategory ? (
+              <CategoryNoteView category={selectedCategory} onRefresh={refresh} />
+            ) : (
+              <div className="empty-state">왼쪽에서 폴더/아이템을 선택하거나 새로 만드세요.</div>
+            )}
+          </main>
         </div>
-        <TodoPanel />
-      </aside>
-      <div className="sidebar-resizer" onMouseDown={startResize} />
-      <main className="main-panel">
-        {selectedItem ? (
-          <>
-            <h2 className="item-title">{selectedItem.name}</h2>
-            <ItemDescriptionInput item={selectedItem} onRefresh={refresh} />
-            <PageView item={selectedItem} />
-          </>
-        ) : selectedCategory ? (
-          <CategoryNoteView category={selectedCategory} onRefresh={refresh} />
-        ) : (
-          <div className="empty-state">왼쪽에서 폴더/아이템을 선택하거나 새로 만드세요.</div>
-        )}
-      </main>
+      ) : (
+        <FormulaInfoPage />
+      )}
     </div>
   )
 }

@@ -87,3 +87,21 @@ class Todo(BaseModel):
     date: str  # "YYYY-MM-DD"
     text: str
     done: bool = False
+
+
+class CodeInfo(BaseModel):
+    id: str
+    code: str
+    description: str = ""
+    created_at: float = Field(default_factory=now)
+
+
+FORMULA_CATEGORIES = ("기술적지표", "신호검색", "강세약세")
+
+
+class FormulaInfo(BaseModel):
+    id: str
+    category: str
+    name: str
+    content: str = ""
+    created_at: float = Field(default_factory=now)

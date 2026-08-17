@@ -10,7 +10,7 @@ from .db import SessionLocal, ensure_schema
 from .models import ROOT_CATEGORY_ID
 from .orm import CategoryORM
 from .paths import ASSETS_DIR, DATA_DIR
-from .routers import assets, categories, items, pages, todos
+from .routers import assets, categories, items, pages, reference, todos
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
@@ -39,6 +39,7 @@ app.include_router(items.router)
 app.include_router(pages.router)
 app.include_router(assets.router)
 app.include_router(todos.router)
+app.include_router(reference.router)
 
 app.mount("/uploads", StaticFiles(directory=str(ASSETS_DIR)), name="uploads")
 

@@ -25,6 +25,24 @@ export interface Todo {
   done: boolean
 }
 
+export interface CodeInfo {
+  id: string
+  code: string
+  description: string
+  created_at: number
+}
+
+export const FORMULA_CATEGORIES = ['기술적지표', '신호검색', '강세약세'] as const
+export type FormulaCategory = (typeof FORMULA_CATEGORIES)[number]
+
+export interface FormulaInfo {
+  id: string
+  category: string
+  name: string
+  content: string
+  created_at: number
+}
+
 export interface Stroke {
   kind: 'path' | 'text'
   color: string
@@ -144,4 +162,18 @@ export const api = {
   updateTodo: (id: string, patch: { text?: string; done?: boolean }) =>
     request<Todo>(`/api/todos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteTodo: (id: string) => request<{ ok: boolean }>(`/api/todos/${id}`, { method: 'DELETE' }),
+
+  listCodeInfos: () => request<CodeInfo[]>('/api/code-infos'),
+  createCodeInfo: (code: string, description: string) =>
+    request<CodeInfo>('/api/code-infos', { method: 'POST', body: JSON.stringify({ code, description }) }),
+  updateCodeInfo: (id: string, patch: { code?: string; description?: string }) =>
+    request<CodeInfo>(`/api/code-infos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteCodeInfo: (id: string) => request<{ ok: boolean }>(`/api/code-infos/${id}`, { method: 'DELETE' }),
+
+  listFormulaInfos: () => request<FormulaInfo[]>('/api/formula-infos'),
+  createFormulaInfo: (category: string, name: string, content: string) =>
+    request<FormulaInfo>('/api/formula-infos', { method: 'POST', body: JSON.stringify({ category, name, content }) }),
+  updateFormulaInfo: (id: string, patch: { category?: string; name?: string; content?: string }) =>
+    request<FormulaInfo>(`/api/formula-infos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteFormulaInfo: (id: string) => request<{ ok: boolean }>(`/api/formula-infos/${id}`, { method: 'DELETE' }),
 }
