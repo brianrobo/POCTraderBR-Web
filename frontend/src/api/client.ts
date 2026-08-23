@@ -80,6 +80,17 @@ export interface Page {
 }
 
 export const ROOT_CATEGORY_ID = '__ROOT__'
+export const ROOT_STUDY_PLAN_ID = '__STUDY_ROOT__'
+
+export interface StudyPlanNode {
+  id: string
+  name: string
+  parent_id: string | null
+  child_ids: string[]
+  start_date: string | null
+  end_date: string | null
+  result_html: string
+}
 
 const STOCK_NAME_FIELD: Record<ImageSlotKey, keyof Page> = {
   a: 'stock_name_a',
@@ -176,4 +187,24 @@ export const api = {
   updateFormulaInfo: (id: string, patch: { category?: string; name?: string; content?: string }) =>
     request<FormulaInfo>(`/api/formula-infos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteFormulaInfo: (id: string) => request<{ ok: boolean }>(`/api/formula-infos/${id}`, { method: 'DELETE' }),
+
+  listStudyPlanNodes: () => request<StudyPlanNode[]>('/api/study-plan-nodes'),
+  createStudyPlanNode: (name: string, parent_id: string = ROOT_STUDY_PLAN_ID) =>
+    request<StudyPlanNode>('/api/study-plan-nodes', { method: 'POST', body: JSON.stringify({ name, parent_id }) }),
+  renameStudyPlanNode: (id: string, name: string) =>
+    request<StudyPlanNode>(`/api/study-plan-nodes/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  updateStudyPlanDates: (id: string, patch: { start_date?: string; end_date?: string }) =>
+    request<StudyPlanNode>(`/api/study-plan-nodes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  updateStudyPlanResult: (id: string, result_html: string) =>
+    request<StudyPlanNode>(`/api/study-plan-nodes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ result_html }),
+    }),
+  moveStudyPlanNode: (id: string, direction: 'up' | 'down') =>
+    request<{ ok: boolean }>(`/api/study-plan-nodes/${id}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ direction }),
+    }),
+  deleteStudyPlanNode: (id: string) =>
+    request<{ ok: boolean }>(`/api/study-plan-nodes/${id}`, { method: 'DELETE' }),
 }

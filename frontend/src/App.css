@@ -662,3 +662,94 @@
 .formula-add-form > button {
   align-self: flex-start;
 }
+
+/* Study plan */
+.study-plan-page {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.study-plan-tree-pane {
+  width: 320px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #5a6072;
+}
+
+.status-dot.status-progress {
+  background: var(--accent);
+}
+
+.status-dot.status-done {
+  background: #2ecc71;
+}
+
+.study-plan-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+.study-plan-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.study-plan-detail-header .item-title {
+  margin: 0;
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #5a6072;
+  color: white;
+}
+
+.status-badge.status-progress {
+  background: var(--accent);
+}
+
+.status-badge.status-done {
+  background: #2ecc71;
+  color: #06210f;
+}
+
+.study-plan-dates {
+  display: flex;
+  gap: 20px;
+}
+
+.study-plan-dates label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.study-plan-dates input[type='date'] {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  padding: 5px 8px;
+}
+
+.study-plan-result-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 600;
+}

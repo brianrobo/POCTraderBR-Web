@@ -81,3 +81,15 @@ class FormulaInfoORM(Base):
     name: Mapped[str] = mapped_column(Text)
     content: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[float] = mapped_column(default=0.0)
+
+
+class StudyPlanNodeORM(Base):
+    __tablename__ = "study_plan_nodes"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    parent_id: Mapped[Optional[str]] = mapped_column(ForeignKey("study_plan_nodes.id"), nullable=True)
+    position: Mapped[int] = mapped_column(default=0)
+    start_date: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    end_date: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    result_html: Mapped[str] = mapped_column(Text, default="")

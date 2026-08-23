@@ -6,8 +6,8 @@ from typing import Optional, Type
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .models import Category, CodeInfo, FormulaInfo, ImageSlot, Item, Page, Stroke, Todo
-from .orm import CategoryORM, CodeInfoORM, FormulaInfoORM, ItemORM, PageORM, TodoORM
+from .models import Category, CodeInfo, FormulaInfo, ImageSlot, Item, Page, Stroke, StudyPlanNode, Todo
+from .orm import CategoryORM, CodeInfoORM, FormulaInfoORM, ItemORM, PageORM, StudyPlanNodeORM, TodoORM
 
 
 def category_to_api(session: Session, row: CategoryORM) -> Category:
@@ -95,6 +95,25 @@ def code_info_to_api(row: CodeInfoORM) -> CodeInfo:
 def formula_info_to_api(row: FormulaInfoORM) -> FormulaInfo:
     return FormulaInfo(
         id=row.id, category=row.category, name=row.name, content=row.content, created_at=row.created_at
+    )
+
+
+def study_plan_node_to_api(session: Session, row: StudyPlanNodeORM) -> StudyPlanNode:
+    child_ids = list(
+        session.execute(
+            select(StudyPlanNodeORM.id)
+            .where(StudyPlanNodeORM.parent_id == row.id)
+            .order_by(StudyPlanNodeORM.position)
+        ).scalars()
+    )
+    return StudyPlanNode(
+        id=row.id,
+        name=row.name,
+        parent_id=row.parent_id,
+        child_ids=child_ids,
+        start_date=row.start_date,
+        end_date=row.end_date,
+        result_html=row.result_html,
     )
 
 

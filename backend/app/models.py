@@ -7,6 +7,7 @@ from typing import List, Literal, Optional, Tuple
 from pydantic import BaseModel, Field
 
 ROOT_CATEGORY_ID = "__ROOT__"
+ROOT_STUDY_PLAN_ID = "__STUDY_ROOT__"
 
 
 def new_id() -> str:
@@ -105,3 +106,17 @@ class FormulaInfo(BaseModel):
     name: str
     content: str = ""
     created_at: float = Field(default_factory=now)
+
+
+class StudyPlanNode(BaseModel):
+    """A single node in the study-plan tree. Unlike Category/Item, one node
+    is both a container (can have children) and a content leaf (dates +
+    result notes) at the same time — there's no separate "item" tier."""
+
+    id: str
+    name: str
+    parent_id: Optional[str] = None
+    child_ids: List[str] = Field(default_factory=list)
+    start_date: Optional[str] = None  # "YYYY-MM-DD"
+    end_date: Optional[str] = None  # "YYYY-MM-DD"
+    result_html: str = ""

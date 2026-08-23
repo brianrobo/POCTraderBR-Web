@@ -6,6 +6,7 @@ import { CategoryNoteView } from './components/CategoryNoteView'
 import { ItemDescriptionInput } from './components/ItemDescriptionInput'
 import { TodoPanel } from './components/TodoPanel'
 import { FormulaInfoPage } from './components/FormulaInfoPage'
+import { StudyPlanPage } from './components/StudyPlanPage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -15,11 +16,12 @@ const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
-type Tab = 'notes' | 'reference'
+type Tab = 'notes' | 'reference' | 'study'
 type Selection = { type: 'item' | 'category'; id: string } | null
 
 function loadActiveTab(): Tab {
-  return localStorage.getItem(ACTIVE_TAB_KEY) === 'reference' ? 'reference' : 'notes'
+  const raw = localStorage.getItem(ACTIVE_TAB_KEY)
+  return raw === 'reference' || raw === 'study' ? raw : 'notes'
 }
 
 function loadLastSelection(): Selection {
@@ -132,6 +134,13 @@ export default function App() {
         >
           수식 정보
         </button>
+        <button
+          type="button"
+          className={activeTab === 'study' ? 'active' : ''}
+          onClick={() => setActiveTab('study')}
+        >
+          학습 계획
+        </button>
       </div>
       {activeTab === 'notes' ? (
         <div className="app-layout">
@@ -165,8 +174,10 @@ export default function App() {
             )}
           </main>
         </div>
-      ) : (
+      ) : activeTab === 'reference' ? (
         <FormulaInfoPage />
+      ) : (
+        <StudyPlanPage />
       )}
     </div>
   )
