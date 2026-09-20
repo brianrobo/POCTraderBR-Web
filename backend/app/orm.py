@@ -35,6 +35,7 @@ class PageORM(Base):
     id: Mapped[str] = mapped_column(primary_key=True)
     item_id: Mapped[str] = mapped_column(ForeignKey("items.id"))
     position: Mapped[int] = mapped_column(default=0)
+    kind: Mapped[str] = mapped_column(Text, default="chart")
     note_html_a: Mapped[str] = mapped_column(Text, default="")
     note_html_b: Mapped[str] = mapped_column(Text, default="")
     updated_at: Mapped[float] = mapped_column(default=0.0)

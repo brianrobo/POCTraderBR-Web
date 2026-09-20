@@ -7,6 +7,9 @@ import { ItemDescriptionInput } from './components/ItemDescriptionInput'
 import { TodoPanel } from './components/TodoPanel'
 import { FormulaInfoPage } from './components/FormulaInfoPage'
 import { StudyPlanPage } from './components/StudyPlanPage'
+import { MarketHoursBar } from './components/MarketHoursBar'
+import { InsightFeed } from './components/InsightFeed'
+import { LiveAnalysisPage } from './components/LiveAnalysisPage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -16,12 +19,12 @@ const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
-type Tab = 'notes' | 'reference' | 'study'
+type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live'
 type Selection = { type: 'item' | 'category'; id: string } | null
 
 function loadActiveTab(): Tab {
   const raw = localStorage.getItem(ACTIVE_TAB_KEY)
-  return raw === 'reference' || raw === 'study' ? raw : 'notes'
+  return raw === 'reference' || raw === 'study' || raw === 'insights' || raw === 'live' ? raw : 'notes'
 }
 
 function loadLastSelection(): Selection {
@@ -54,6 +57,7 @@ export default function App() {
   const [selection, setSelection] = useState<Selection>(() => loadLastSelection())
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth)
   const [activeTab, setActiveTab] = useState<Tab>(loadActiveTab)
+  const [jumpToPageId, setJumpToPageId] = useState<string | null>(null)
   const widthRef = useRef(sidebarWidth)
   const resizingRef = useRef(false)
 
@@ -111,6 +115,12 @@ export default function App() {
     document.body.style.userSelect = 'none'
   }
 
+  const openInsight = (itemId: string, pageId: string) => {
+    setSelection({ type: 'item', id: itemId })
+    setJumpToPageId(pageId)
+    setActiveTab('notes')
+  }
+
   const selectedItemId = selection?.type === 'item' ? selection.id : null
   const selectedCategoryId = selection?.type === 'category' ? selection.id : null
 
@@ -119,6 +129,7 @@ export default function App() {
 
   return (
     <div className="app-root">
+      <MarketHoursBar />
       <div className="top-tabs">
         <button
           type="button"
@@ -140,6 +151,20 @@ export default function App() {
           onClick={() => setActiveTab('study')}
         >
           학습 계획
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'insights' ? 'active' : ''}
+          onClick={() => setActiveTab('insights')}
+        >
+          인사이트 모아보기
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'live' ? 'active' : ''}
+          onClick={() => setActiveTab('live')}
+        >
+          실시간 분석
         </button>
       </div>
       {activeTab === 'notes' ? (
@@ -165,7 +190,7 @@ export default function App() {
               <>
                 <h2 className="item-title">{selectedItem.name}</h2>
                 <ItemDescriptionInput item={selectedItem} onRefresh={refresh} />
-                <PageView item={selectedItem} />
+                <PageView item={selectedItem} jumpToPageId={jumpToPageId} />
               </>
             ) : selectedCategory ? (
               <CategoryNoteView category={selectedCategory} onRefresh={refresh} />
@@ -176,8 +201,12 @@ export default function App() {
         </div>
       ) : activeTab === 'reference' ? (
         <FormulaInfoPage />
-      ) : (
+      ) : activeTab === 'study' ? (
         <StudyPlanPage />
+      ) : activeTab === 'insights' ? (
+        <InsightFeed onOpen={openInsight} />
+      ) : (
+        <LiveAnalysisPage />
       )}
     </div>
   )

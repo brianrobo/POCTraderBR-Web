@@ -5,28 +5,36 @@ import { ChartCanvas } from './ChartCanvas'
 
 interface Props {
   item: Item
+  jumpToPageId?: string | null
 }
 
-export function PageView({ item }: Props) {
+export function PageView({ item, jumpToPageId }: Props) {
   const [pages, setPages] = useState<Page[]>([])
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = async (preferPageId?: string | null) => {
     setLoading(true)
     const list = await api.listPages(item.id)
     setPages(list)
-    setSelectedPageId((prev) => (prev && list.some((p) => p.id === prev) ? prev : (list[0]?.id ?? null)))
+    const preferred = preferPageId && list.some((p) => p.id === preferPageId) ? preferPageId : null
+    setSelectedPageId((prev) => preferred ?? (prev && list.some((p) => p.id === prev) ? prev : (list[0]?.id ?? null)))
     setLoading(false)
   }
 
   useEffect(() => {
-    load()
+    load(jumpToPageId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id])
+  }, [item.id, jumpToPageId])
 
   const addPage = async () => {
-    const p = await api.createPage(item.id)
+    const p = await api.createPage(item.id, 'chart')
+    setPages((prev) => [...prev, p])
+    setSelectedPageId(p.id)
+  }
+
+  const addInsight = async () => {
+    const p = await api.createPage(item.id, 'insight')
     setPages((prev) => [...prev, p])
     setSelectedPageId(p.id)
   }
@@ -54,109 +62,131 @@ export function PageView({ item }: Props) {
 
   if (loading) return <div className="page-view-loading">로딩 중...</div>
 
+  let chartCount = 0
+  let insightCount = 0
+
   return (
     <div className="page-view">
       <div className="page-tabs">
-        {pages.map((p, idx) => (
-          <button
-            key={p.id}
-            type="button"
-            className={`page-tab ${p.id === selectedPageId ? 'active' : ''}`}
-            onClick={() => setSelectedPageId(p.id)}
-          >
-            페이지 {idx + 1}
-            <span
-              className="page-tab-close"
-              onClick={(e) => {
-                e.stopPropagation()
-                removePage(p.id)
-              }}
+        {pages.map((p) => {
+          const label = p.kind === 'insight' ? `💡 인사이트 ${++insightCount}` : `페이지 ${++chartCount}`
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className={`page-tab ${p.kind === 'insight' ? 'insight' : ''} ${p.id === selectedPageId ? 'active' : ''}`}
+              onClick={() => setSelectedPageId(p.id)}
             >
-              ✕
-            </span>
-          </button>
-        ))}
+              {label}
+              <span
+                className="page-tab-close"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  removePage(p.id)
+                }}
+              >
+                ✕
+              </span>
+            </button>
+          )
+        })}
         <button type="button" className="page-tab-add" onClick={addPage}>
           + 페이지
         </button>
+        <button type="button" className="page-tab-add insight" onClick={addInsight}>
+          + 인사이트
+        </button>
       </div>
       {selectedPage ? (
-        <div className="page-body">
-          <div className="layout-toggle">
-            <button
-              type="button"
-              className={selectedPage.layout === '2' ? 'active' : ''}
-              onClick={() => setLayout(selectedPage.id, '2')}
-            >
-              2단
-            </button>
-            <button
-              type="button"
-              className={selectedPage.layout === '4' ? 'active' : ''}
-              onClick={() => setLayout(selectedPage.id, '4')}
-            >
-              4단
-            </button>
+        selectedPage.kind === 'insight' ? (
+          <div className="page-body insight-page-body">
+            <NoteEditor
+              key={`${selectedPage.id}-insight`}
+              html={selectedPage.note_html_a}
+              onSave={async (html) => {
+                const updated = await api.updatePageNote(selectedPage.id, 'a', html)
+                updatePage(updated)
+              }}
+            />
           </div>
-          <div className="page-columns">
-            <div className="page-column">
-              <NoteEditor
-                key={`${selectedPage.id}-note-a`}
-                html={selectedPage.note_html_a}
-                onSave={async (html) => {
-                  const updated = await api.updatePageNote(selectedPage.id, 'a', html)
-                  updatePage(updated)
-                }}
-              />
-              <div className="column-charts">
-                <ChartCanvas
-                  key={`${selectedPage.id}-a`}
-                  page={selectedPage}
-                  slot="a"
-                  label={selectedPage.layout === '4' ? 'A 상단' : 'A'}
-                  onPageUpdate={updatePage}
+        ) : (
+          <div className="page-body">
+            <div className="layout-toggle">
+              <button
+                type="button"
+                className={selectedPage.layout === '2' ? 'active' : ''}
+                onClick={() => setLayout(selectedPage.id, '2')}
+              >
+                2단
+              </button>
+              <button
+                type="button"
+                className={selectedPage.layout === '4' ? 'active' : ''}
+                onClick={() => setLayout(selectedPage.id, '4')}
+              >
+                4단
+              </button>
+            </div>
+            <div className="page-columns">
+              <div className="page-column">
+                <NoteEditor
+                  key={`${selectedPage.id}-note-a`}
+                  html={selectedPage.note_html_a}
+                  onSave={async (html) => {
+                    const updated = await api.updatePageNote(selectedPage.id, 'a', html)
+                    updatePage(updated)
+                  }}
                 />
-                {selectedPage.layout === '4' && (
+                <div className="column-charts">
                   <ChartCanvas
-                    key={`${selectedPage.id}-a2`}
+                    key={`${selectedPage.id}-a`}
                     page={selectedPage}
-                    slot="a2"
-                    label="A 하단"
+                    slot="a"
+                    label={selectedPage.layout === '4' ? 'A 상단' : 'A'}
                     onPageUpdate={updatePage}
                   />
-                )}
+                  {selectedPage.layout === '4' && (
+                    <ChartCanvas
+                      key={`${selectedPage.id}-a2`}
+                      page={selectedPage}
+                      slot="a2"
+                      label="A 하단"
+                      onPageUpdate={updatePage}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="page-column">
-              <NoteEditor
-                key={`${selectedPage.id}-note-b`}
-                html={selectedPage.note_html_b}
-                onSave={async (html) => {
-                  const updated = await api.updatePageNote(selectedPage.id, 'b', html)
-                  updatePage(updated)
-                }}
-              />
-              <div className="column-charts">
-                <ChartCanvas
-                  key={`${selectedPage.id}-b`}
-                  page={selectedPage}
-                  slot="b"
-                  label={selectedPage.layout === '4' ? 'B 상단' : 'B'}
-                  onPageUpdate={updatePage}
+              <div className="page-column">
+                <NoteEditor
+                  key={`${selectedPage.id}-note-b`}
+                  html={selectedPage.note_html_b}
+                  onSave={async (html) => {
+                    const updated = await api.updatePageNote(selectedPage.id, 'b', html)
+                    updatePage(updated)
+                  }}
                 />
-                {selectedPage.layout === '4' && (
+                <div className="column-charts">
                   <ChartCanvas
-                    key={`${selectedPage.id}-b2`}
+                    key={`${selectedPage.id}-b`}
                     page={selectedPage}
-                    slot="b2"
-                    label="B 하단"
+                    slot="b"
+                    label={selectedPage.layout === '4' ? 'B 상단' : 'B'}
                     onPageUpdate={updatePage}
                   />
-                )}
+                  {selectedPage.layout === '4' && (
+                    <ChartCanvas
+                      key={`${selectedPage.id}-b2`}
+                      page={selectedPage}
+                      slot="b2"
+                      label="B 하단"
+                      onPageUpdate={updatePage}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )
       ) : (
         <div className="page-empty">
           <button type="button" onClick={addPage}>

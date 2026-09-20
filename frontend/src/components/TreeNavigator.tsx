@@ -44,9 +44,20 @@ export function TreeNavigator({
   onRefresh,
 }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(loadExpanded)
+  const [moveMenuFor, setMoveMenuFor] = useState<string | null>(null)
 
   const catById = new Map(categories.map((c) => [c.id, c]))
   const itemById = new Map(items.map((i) => [i.id, i]))
+
+  // Close the folder-move dropdown on any click outside it.
+  useEffect(() => {
+    if (!moveMenuFor) return
+    const onDocClick = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('.folder-picker-wrap')) setMoveMenuFor(null)
+    }
+    window.addEventListener('click', onDocClick)
+    return () => window.removeEventListener('click', onDocClick)
+  }, [moveMenuFor])
 
   // Auto-expand the folder path to the selected item/category (e.g. one
   // restored from localStorage on load) so it's actually visible in the tree.
@@ -133,6 +144,25 @@ export function TreeNavigator({
 
   const moveCategory = async (id: string, direction: 'up' | 'down') => {
     await api.moveCategory(id, direction)
+    onRefresh()
+  }
+
+  const folderOptions = (): { id: string; name: string; depth: number }[] => {
+    const result: { id: string; name: string; depth: number }[] = []
+    const walk = (id: string, depth: number) => {
+      const cat = catById.get(id)
+      if (!cat) return
+      result.push({ id, name: id === ROOT_CATEGORY_ID ? '(최상위)' : cat.name, depth })
+      for (const childId of cat.child_ids) walk(childId, depth + 1)
+    }
+    walk(ROOT_CATEGORY_ID, 0)
+    return result
+  }
+
+  const moveItemToFolder = async (itemId: string, categoryId: string, currentCategoryId: string) => {
+    setMoveMenuFor(null)
+    if (categoryId === currentCategoryId) return
+    await api.moveItemToCategory(itemId, categoryId)
     onRefresh()
   }
 
@@ -245,7 +275,7 @@ export function TreeNavigator({
                   >
                     {item.name}
                   </span>
-                  <span className="tree-actions">
+                  <span className={`tree-actions ${moveMenuFor === itemId ? 'menu-open' : ''}`}>
                     <button
                       title="위로 이동"
                       disabled={itemIdx === 0}
@@ -266,6 +296,31 @@ export function TreeNavigator({
                     >
                       ▼
                     </button>
+                    <span className="folder-picker-wrap">
+                      <button
+                        title="다른 폴더로 이동"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMoveMenuFor((prev) => (prev === itemId ? null : itemId))
+                        }}
+                      >
+                        📁
+                      </button>
+                      {moveMenuFor === itemId && (
+                        <div className="folder-picker-dropdown" onClick={(e) => e.stopPropagation()}>
+                          {folderOptions().map((opt) => (
+                            <div
+                              key={opt.id}
+                              className={`folder-picker-option ${opt.id === item.category_id ? 'current' : ''}`}
+                              style={{ paddingLeft: 8 + opt.depth * 14 }}
+                              onClick={() => moveItemToFolder(itemId, opt.id, item.category_id)}
+                            >
+                              {opt.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </span>
                     <button
                       title="아이템 삭제"
                       onClick={(e) => {

@@ -62,9 +62,12 @@ export interface ImageSlot {
 export type ImageSlotKey = 'a' | 'a2' | 'b' | 'b2'
 export type PageLayout = '2' | '4'
 
+export type PageKind = 'chart' | 'insight'
+
 export interface Page {
   id: string
   item_id: string
+  kind: PageKind
   note_html_a: string
   note_html_b: string
   updated_at: number
@@ -90,6 +93,16 @@ export interface StudyPlanNode {
   start_date: string | null
   end_date: string | null
   result_html: string
+}
+
+export interface InsightEntry {
+  page_id: string
+  item_id: string
+  item_name: string
+  category_id: string
+  category_path: string
+  content_html: string
+  updated_at: number
 }
 
 const STOCK_NAME_FIELD: Record<ImageSlotKey, keyof Page> = {
@@ -137,12 +150,15 @@ export const api = {
     request<Item>(`/api/items/${id}`, { method: 'PATCH', body: JSON.stringify({ description }) }),
   moveItem: (id: string, direction: 'up' | 'down') =>
     request<{ ok: boolean }>(`/api/items/${id}/move`, { method: 'POST', body: JSON.stringify({ direction }) }),
+  moveItemToCategory: (id: string, category_id: string) =>
+    request<Item>(`/api/items/${id}`, { method: 'PATCH', body: JSON.stringify({ category_id }) }),
   deleteItem: (id: string) => request<{ ok: boolean }>(`/api/items/${id}`, { method: 'DELETE' }),
 
   listPages: (item_id: string) => request<Page[]>(`/api/pages?item_id=${item_id}`),
   getPage: (id: string) => request<Page>(`/api/pages/${id}`),
-  createPage: (item_id: string) =>
-    request<Page>('/api/pages', { method: 'POST', body: JSON.stringify({ item_id }) }),
+  createPage: (item_id: string, kind: PageKind = 'chart') =>
+    request<Page>('/api/pages', { method: 'POST', body: JSON.stringify({ item_id, kind }) }),
+  listInsights: () => request<InsightEntry[]>('/api/pages/insights'),
   updatePageNote: (id: string, column: 'a' | 'b', note_html: string) =>
     request<Page>(`/api/pages/${id}`, {
       method: 'PATCH',

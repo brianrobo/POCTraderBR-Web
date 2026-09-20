@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -9,14 +9,15 @@ from sqlalchemy.orm import Session
 
 from ..crud import SLOT_PATH_ATTR, SLOT_STROKES_ATTR, next_position, page_to_api
 from ..db import get_session
-from ..models import IMAGE_SLOTS, LAYOUTS, Page, Stroke, new_id, now
-from ..orm import ItemORM, PageORM
+from ..models import IMAGE_SLOTS, LAYOUTS, ROOT_CATEGORY_ID, InsightEntry, Page, Stroke, new_id, now
+from ..orm import CategoryORM, ItemORM, PageORM
 
 router = APIRouter(prefix="/api/pages", tags=["pages"])
 
 
 class PageCreate(BaseModel):
     item_id: str
+    kind: Literal["chart", "insight"] = "chart"
 
 
 class PageUpdate(BaseModel):
@@ -41,6 +42,47 @@ def list_pages(item_id: Optional[str] = None, session: Session = Depends(get_ses
     return [page_to_api(r) for r in q.order_by(PageORM.position).all()]
 
 
+def _category_path(session: Session, category_id: Optional[str]) -> str:
+    names: List[str] = []
+    current_id = category_id
+    seen: set[str] = set()
+    while current_id and current_id not in seen and current_id != ROOT_CATEGORY_ID:
+        seen.add(current_id)
+        cat = session.get(CategoryORM, current_id)
+        if not cat:
+            break
+        names.append(cat.name)
+        current_id = cat.parent_id
+    return " > ".join(reversed(names))
+
+
+@router.get("/insights", response_model=List[InsightEntry])
+def list_insights(session: Session = Depends(get_session)) -> List[InsightEntry]:
+    rows = (
+        session.query(PageORM)
+        .filter_by(kind="insight")
+        .order_by(PageORM.updated_at.desc())
+        .all()
+    )
+    entries: List[InsightEntry] = []
+    for row in rows:
+        item = session.get(ItemORM, row.item_id)
+        if not item:
+            continue
+        entries.append(
+            InsightEntry(
+                page_id=row.id,
+                item_id=item.id,
+                item_name=item.name,
+                category_id=item.category_id,
+                category_path=_category_path(session, item.category_id),
+                content_html=row.note_html_a,
+                updated_at=row.updated_at,
+            )
+        )
+    return entries
+
+
 @router.get("/{page_id}", response_model=Page)
 def get_page(page_id: str, session: Session = Depends(get_session)) -> Page:
     row = session.get(PageORM, page_id)
@@ -57,6 +99,7 @@ def create_page(payload: PageCreate, session: Session = Depends(get_session)) ->
     row = PageORM(
         id=new_id(),
         item_id=payload.item_id,
+        kind=payload.kind,
         position=next_position(session, PageORM, item_id=payload.item_id),
         note_html_a="",
         note_html_b="",

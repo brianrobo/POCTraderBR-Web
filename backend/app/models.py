@@ -45,9 +45,13 @@ IMAGE_SLOTS = ("a", "a2", "b", "b2")
 LAYOUTS = ("2", "4")
 
 
+PAGE_KINDS = ("chart", "insight")
+
+
 class Page(BaseModel):
     id: str
     item_id: str
+    kind: Literal["chart", "insight"] = "chart"
     note_html_a: str = ""
     note_html_b: str = ""
     updated_at: float = Field(default_factory=now)
@@ -60,6 +64,18 @@ class Page(BaseModel):
     stock_name_a2: str = ""
     stock_name_b: str = ""
     stock_name_b2: str = ""
+
+
+class InsightEntry(BaseModel):
+    """A read-only rollup row for the cross-item "인사이트 모아보기" feed."""
+
+    page_id: str
+    item_id: str
+    item_name: str
+    category_id: str
+    category_path: str
+    content_html: str
+    updated_at: float
 
 
 class Item(BaseModel):
