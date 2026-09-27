@@ -51,6 +51,26 @@ export function PageView({ item, jumpToPageId }: Props) {
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) ?? null
 
+  const toggleResult = async (page: Page, next: 'pass' | 'fail') => {
+    updatePage(await api.updatePageResult(page.id, page.result === next ? '' : next))
+  }
+
+  const toggleMaSpacing = async (page: Page, next: 'converge' | 'diverge') => {
+    updatePage(await api.updatePageChecklist(page.id, { ma_spacing: page.ma_spacing === next ? '' : next }))
+  }
+
+  const togglePeriodSymmetry = async (page: Page, next: 'after' | 'before') => {
+    updatePage(await api.updatePageChecklist(page.id, { period_symmetry: page.period_symmetry === next ? '' : next }))
+  }
+
+  const toggleLeadingSpan2 = async (page: Page, next: 'digested' | 'undigested') => {
+    updatePage(await api.updatePageChecklist(page.id, { leading_span2: page.leading_span2 === next ? '' : next }))
+  }
+
+  const toggleAccumulation = async (page: Page) => {
+    updatePage(await api.updatePageChecklist(page.id, { accumulation_checked: !page.accumulation_checked }))
+  }
+
   const setLayout = async (id: string, layout: '2' | '4') => {
     try {
       const updated = await api.updatePageLayout(id, layout)
@@ -69,7 +89,10 @@ export function PageView({ item, jumpToPageId }: Props) {
     <div className="page-view">
       <div className="page-tabs">
         {pages.map((p) => {
-          const label = p.kind === 'insight' ? `💡 인사이트 ${++insightCount}` : `페이지 ${++chartCount}`
+          const label =
+            p.kind === 'insight'
+              ? `💡 인사이트 ${++insightCount}${p.result ? ` · ${p.result.toUpperCase()}` : ''}`
+              : `페이지 ${++chartCount}`
           return (
             <button
               key={p.id}
@@ -100,6 +123,81 @@ export function PageView({ item, jumpToPageId }: Props) {
       {selectedPage ? (
         selectedPage.kind === 'insight' ? (
           <div className="page-body insight-page-body">
+            <div className="insight-result-bar">
+              <span className="insight-result-label">결과</span>
+              <button
+                type="button"
+                className={`result-btn pass ${selectedPage.result === 'pass' ? 'active' : ''}`}
+                onClick={() => toggleResult(selectedPage, 'pass')}
+              >
+                PASS
+              </button>
+              <button
+                type="button"
+                className={`result-btn fail ${selectedPage.result === 'fail' ? 'active' : ''}`}
+                onClick={() => toggleResult(selectedPage, 'fail')}
+              >
+                FAIL
+              </button>
+              {!selectedPage.result && <span className="insight-result-hint">아직 미정</span>}
+            </div>
+            <div className="insight-checklist">
+              <span className="insight-checklist-item">
+                <span className="insight-checklist-label">기간대칭</span>
+                <button
+                  type="button"
+                  className={`checklist-btn green ${selectedPage.period_symmetry === 'after' ? 'active' : ''}`}
+                  onClick={() => togglePeriodSymmetry(selectedPage, 'after')}
+                >
+                  이후
+                </button>
+                <button
+                  type="button"
+                  className={`checklist-btn red ${selectedPage.period_symmetry === 'before' ? 'active' : ''}`}
+                  onClick={() => togglePeriodSymmetry(selectedPage, 'before')}
+                >
+                  이전
+                </button>
+              </span>
+              <span className="insight-checklist-item">
+                <span className="insight-checklist-label">이평 이격</span>
+                <button
+                  type="button"
+                  className={`checklist-btn green ${selectedPage.ma_spacing === 'converge' ? 'active' : ''}`}
+                  onClick={() => toggleMaSpacing(selectedPage, 'converge')}
+                >
+                  수렴
+                </button>
+                <button
+                  type="button"
+                  className={`checklist-btn red ${selectedPage.ma_spacing === 'diverge' ? 'active' : ''}`}
+                  onClick={() => toggleMaSpacing(selectedPage, 'diverge')}
+                >
+                  벌어짐
+                </button>
+              </span>
+              <label className="insight-checklist-item">
+                <input type="checkbox" checked={selectedPage.accumulation_checked} onChange={() => toggleAccumulation(selectedPage)} />
+                매집구간 체크
+              </label>
+              <span className="insight-checklist-item">
+                <span className="insight-checklist-label">선행2</span>
+                <button
+                  type="button"
+                  className={`checklist-btn green ${selectedPage.leading_span2 === 'digested' ? 'active' : ''}`}
+                  onClick={() => toggleLeadingSpan2(selectedPage, 'digested')}
+                >
+                  소화
+                </button>
+                <button
+                  type="button"
+                  className={`checklist-btn red ${selectedPage.leading_span2 === 'undigested' ? 'active' : ''}`}
+                  onClick={() => toggleLeadingSpan2(selectedPage, 'undigested')}
+                >
+                  미소화
+                </button>
+              </span>
+            </div>
             <NoteEditor
               key={`${selectedPage.id}-insight`}
               html={selectedPage.note_html_a}
@@ -108,6 +206,15 @@ export function PageView({ item, jumpToPageId }: Props) {
                 updatePage(updated)
               }}
             />
+            <div className="insight-charts">
+              <ChartCanvas
+                key={`${selectedPage.id}-a`}
+                page={selectedPage}
+                slot="a"
+                label=""
+                onPageUpdate={updatePage}
+              />
+            </div>
           </div>
         ) : (
           <div className="page-body">

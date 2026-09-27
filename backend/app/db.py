@@ -55,6 +55,12 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("categories", "note_html", "ALTER TABLE categories ADD COLUMN note_html TEXT DEFAULT ''"),
     ("items", "description", "ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''"),
     ("pages", "kind", "ALTER TABLE pages ADD COLUMN kind TEXT DEFAULT 'chart'"),
+    ("pages", "result", "ALTER TABLE pages ADD COLUMN result TEXT DEFAULT ''"),
+    ("pages", "ma_spacing", "ALTER TABLE pages ADD COLUMN ma_spacing TEXT DEFAULT ''"),
+    ("pages", "accumulation_checked", "ALTER TABLE pages ADD COLUMN accumulation_checked BOOLEAN DEFAULT 0"),
+    ("pages", "leading_span2_checked", "ALTER TABLE pages ADD COLUMN leading_span2_checked BOOLEAN DEFAULT 0"),
+    ("pages", "period_symmetry", "ALTER TABLE pages ADD COLUMN period_symmetry TEXT DEFAULT ''"),
+    ("pages", "leading_span2", "ALTER TABLE pages ADD COLUMN leading_span2 TEXT DEFAULT ''"),
 ]
 
 # The single shared note_html column became per-column note_html_a/note_html_b.
@@ -72,8 +78,18 @@ def ensure_schema() -> None:
             existing = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))}
             if old in existing and new not in existing:
                 conn.execute(text(f"ALTER TABLE {table} RENAME COLUMN {old} TO {new}"))
+        added_leading_span2 = False
         for table, column, ddl in _ADDITIVE_COLUMNS:
             existing = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))}
             if column not in existing:
                 conn.execute(text(ddl))
+                if table == "pages" and column == "leading_span2":
+                    added_leading_span2 = True
+        # The old boolean "선행2 소화" checkbox became a tri-state
+        # ''/digested/undigested field — carry forward any already-checked
+        # rows as "digested" rather than silently losing that judgment.
+        if added_leading_span2:
+            conn.execute(
+                text("UPDATE pages SET leading_span2 = 'digested' WHERE leading_span2_checked = 1")
+            )
         conn.commit()

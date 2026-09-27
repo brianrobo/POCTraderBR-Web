@@ -21,6 +21,11 @@ class PageCreate(BaseModel):
 
 
 class PageUpdate(BaseModel):
+    result: Optional[Literal["", "pass", "fail"]] = None
+    ma_spacing: Optional[Literal["", "converge", "diverge"]] = None
+    period_symmetry: Optional[Literal["", "after", "before"]] = None
+    accumulation_checked: Optional[bool] = None
+    leading_span2: Optional[Literal["", "digested", "undigested"]] = None
     note_html_a: Optional[str] = None
     note_html_b: Optional[str] = None
     layout: Optional[str] = None
@@ -69,6 +74,7 @@ def list_insights(session: Session = Depends(get_session)) -> List[InsightEntry]
         item = session.get(ItemORM, row.item_id)
         if not item:
             continue
+        page = page_to_api(row)
         entries.append(
             InsightEntry(
                 page_id=row.id,
@@ -78,6 +84,12 @@ def list_insights(session: Session = Depends(get_session)) -> List[InsightEntry]
                 category_path=_category_path(session, item.category_id),
                 content_html=row.note_html_a,
                 updated_at=row.updated_at,
+                image_a=page.image_a,
+                result=page.result,
+                ma_spacing=page.ma_spacing,
+                period_symmetry=page.period_symmetry,
+                accumulation_checked=page.accumulation_checked,
+                leading_span2=page.leading_span2,
             )
         )
     return entries
@@ -116,6 +128,16 @@ def update_page(page_id: str, payload: PageUpdate, session: Session = Depends(ge
     row = session.get(PageORM, page_id)
     if not row:
         raise HTTPException(404, "not found")
+    if payload.result is not None:
+        row.result = payload.result
+    if payload.ma_spacing is not None:
+        row.ma_spacing = payload.ma_spacing
+    if payload.period_symmetry is not None:
+        row.period_symmetry = payload.period_symmetry
+    if payload.accumulation_checked is not None:
+        row.accumulation_checked = payload.accumulation_checked
+    if payload.leading_span2 is not None:
+        row.leading_span2 = payload.leading_span2
     if payload.note_html_a is not None:
         row.note_html_a = payload.note_html_a
     if payload.note_html_b is not None:

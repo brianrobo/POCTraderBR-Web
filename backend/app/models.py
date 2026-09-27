@@ -53,6 +53,11 @@ class Page(BaseModel):
     id: str
     item_id: str
     kind: Literal["chart", "insight"] = "chart"
+    result: Literal["", "pass", "fail"] = ""
+    ma_spacing: Literal["", "converge", "diverge"] = ""
+    period_symmetry: Literal["", "after", "before"] = ""
+    accumulation_checked: bool = False
+    leading_span2: Literal["", "digested", "undigested"] = ""
     note_html_a: str = ""
     note_html_b: str = ""
     updated_at: float = Field(default_factory=now)
@@ -77,6 +82,12 @@ class InsightEntry(BaseModel):
     category_path: str
     content_html: str
     updated_at: float
+    image_a: Optional[ImageSlot] = None
+    result: Literal["", "pass", "fail"] = ""
+    ma_spacing: Literal["", "converge", "diverge"] = ""
+    period_symmetry: Literal["", "after", "before"] = ""
+    accumulation_checked: bool = False
+    leading_span2: Literal["", "digested", "undigested"] = ""
 
 
 class Item(BaseModel):

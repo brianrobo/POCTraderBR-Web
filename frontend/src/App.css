@@ -326,7 +326,119 @@ button.page-tab-add.insight {
 }
 
 .insight-page-body {
-  max-width: 720px;
+  max-width: 1400px;
+}
+
+.insight-result-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.insight-result-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.insight-result-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.result-btn {
+  padding: 3px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.result-btn.pass {
+  color: #2ecc71;
+  border-color: #2ecc71;
+}
+
+.result-btn.fail {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.result-btn.pass.active {
+  background: #2ecc71;
+  border-color: #2ecc71;
+  color: #06210f;
+}
+
+.result-btn.fail.active {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.insight-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.insight-filter-btn {
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.insight-filter-btn.pass {
+  border-color: #2ecc71;
+}
+
+.insight-filter-btn.fail {
+  border-color: var(--danger);
+}
+
+.insight-filter-btn.pass.active {
+  background: #2ecc71;
+  color: #06210f;
+}
+
+.insight-filter-btn.fail.active {
+  background: var(--danger);
+  color: white;
+}
+
+.insight-result-badge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.insight-result-badge.pass {
+  background: #2ecc71;
+  color: #06210f;
+}
+
+.insight-result-badge.fail {
+  background: var(--danger);
+  color: white;
+}
+
+.insight-charts {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 420px;
+}
+
+.insight-charts > .chart-pane {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.insight-card-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 480px));
+  gap: 10px;
+  margin-top: 6px;
 }
 
 /* Insight feed (cross-item rollup) */
@@ -1680,3 +1792,170 @@ button.page-tab-add.insight {
   background: #000;
   border-radius: 4px;
 }
+
+
+/* 인사이트 체크리스트 (PageView + 1분봉 비교 공용) */
+.insight-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-alt);
+}
+
+.insight-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-checklist-label {
+  color: var(--text-dim);
+}
+
+.checklist-btn {
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+.checklist-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.checklist-btn.green.active {
+  background: #2ecc71;
+  border-color: #2ecc71;
+  color: #06210f;
+}
+
+.checklist-btn.red.active {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+/* 1분봉 비교 (인사이트의 PASS/FAIL을 그대로 가져와서 비교) */
+.one-min-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px;
+  overflow: hidden;
+}
+
+.one-min-stats-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.one-min-stats {
+  border-collapse: collapse;
+  font-size: 13px;
+  max-width: 640px;
+}
+
+.one-min-stats th,
+.one-min-stats td {
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  text-align: left;
+}
+
+.one-min-stats th.pass,
+.one-min-stats td.pass {
+  color: #2ecc71;
+}
+
+.one-min-stats th.fail,
+.one-min-stats td.fail {
+  color: var(--danger);
+}
+
+.one-min-page {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.one-min-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.one-min-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.one-min-column-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.one-min-column-title.pass {
+  color: #2ecc71;
+}
+
+.one-min-column-title.fail {
+  color: var(--danger);
+}
+
+.one-min-column-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.one-min-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.one-min-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.one-min-card-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .one-min-page {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -63,11 +63,20 @@ export type ImageSlotKey = 'a' | 'a2' | 'b' | 'b2'
 export type PageLayout = '2' | '4'
 
 export type PageKind = 'chart' | 'insight'
+export type PageResult = '' | 'pass' | 'fail'
+export type MaSpacing = '' | 'converge' | 'diverge'
+export type PeriodSymmetry = '' | 'after' | 'before'
+export type LeadingSpan2 = '' | 'digested' | 'undigested'
 
 export interface Page {
   id: string
   item_id: string
   kind: PageKind
+  result: PageResult
+  ma_spacing: MaSpacing
+  period_symmetry: PeriodSymmetry
+  accumulation_checked: boolean
+  leading_span2: LeadingSpan2
   note_html_a: string
   note_html_b: string
   updated_at: number
@@ -103,6 +112,12 @@ export interface InsightEntry {
   category_path: string
   content_html: string
   updated_at: number
+  image_a: ImageSlot | null
+  result: PageResult
+  ma_spacing: MaSpacing
+  period_symmetry: PeriodSymmetry
+  accumulation_checked: boolean
+  leading_span2: LeadingSpan2
 }
 
 export interface RemindNote {
@@ -188,6 +203,17 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(column === 'a' ? { note_html_a: note_html } : { note_html_b: note_html }),
     }),
+  updatePageResult: (id: string, result: PageResult) =>
+    request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ result }) }),
+  updatePageChecklist: (
+    id: string,
+    patch: {
+      ma_spacing?: MaSpacing
+      period_symmetry?: PeriodSymmetry
+      accumulation_checked?: boolean
+      leading_span2?: LeadingSpan2
+    },
+  ) => request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   updatePageLayout: (id: string, layout: PageLayout) =>
     request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ layout }) }),
   updateStockName: (id: string, slot: ImageSlotKey, name: string) =>

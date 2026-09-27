@@ -11,6 +11,7 @@ import { MarketHoursBar } from './components/MarketHoursBar'
 import { InsightFeed } from './components/InsightFeed'
 import { LiveAnalysisPage } from './components/LiveAnalysisPage'
 import { RemindPage } from './components/RemindPage'
+import { OneMinComparePage } from './components/OneMinComparePage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -20,14 +21,14 @@ const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
-type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind'
+type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind' | 'onemin'
 type Selection = { type: 'item' | 'category'; id: string } | null
+
+const KNOWN_TABS: Tab[] = ['notes', 'reference', 'study', 'insights', 'live', 'remind', 'onemin']
 
 function loadActiveTab(): Tab {
   const raw = localStorage.getItem(ACTIVE_TAB_KEY)
-  return raw === 'reference' || raw === 'study' || raw === 'insights' || raw === 'live' || raw === 'remind'
-    ? raw
-    : 'notes'
+  return (KNOWN_TABS as string[]).includes(raw ?? '') ? (raw as Tab) : 'notes'
 }
 
 function loadLastSelection(): Selection {
@@ -176,6 +177,13 @@ export default function App() {
         >
           Remind
         </button>
+        <button
+          type="button"
+          className={activeTab === 'onemin' ? 'active' : ''}
+          onClick={() => setActiveTab('onemin')}
+        >
+          1분봉 비교
+        </button>
       </div>
       {activeTab === 'notes' ? (
         <div className="app-layout">
@@ -217,8 +225,10 @@ export default function App() {
         <InsightFeed onOpen={openInsight} />
       ) : activeTab === 'live' ? (
         <LiveAnalysisPage />
-      ) : (
+      ) : activeTab === 'remind' ? (
         <RemindPage onOpenPage={openInsight} />
+      ) : (
+        <OneMinComparePage />
       )}
     </div>
   )

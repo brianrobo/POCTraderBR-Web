@@ -509,7 +509,7 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
     <div className="chart-pane">
       <div className="chart-toolbar">
         <label className="upload-btn">
-          {uploading ? '업로드 중...' : `이미지 ${label} 업로드`}
+          {uploading ? '업로드 중...' : `이미지${label ? ` ${label}` : ''} 업로드`}
           <input type="file" accept="image/png,image/jpeg,image/bmp,image/webp" onChange={handleUpload} hidden />
         </label>
         {imageUrl && (
@@ -562,7 +562,7 @@ export function ChartCanvas({ page, slot, label, onPageUpdate }: Props) {
         <input
           type="text"
           className="stockname-input"
-          placeholder={`종목명 ${label}`}
+          placeholder={`종목명${label ? ` ${label}` : ''}`}
           value={stockName}
           onChange={(e) => handleStockNameChange(e.target.value)}
         />
