@@ -920,7 +920,39 @@ button.page-tab-add.insight {
 }
 
 .market-timetable {
+  --tick-w: 46px;
   overflow-x: auto;
+}
+
+.market-timetable-inner {
+  position: relative;
+  width: max-content;
+}
+
+.market-open-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1px;
+  background: #ff3c3c;
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.market-open-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #ff6b6b;
+}
+
+.market-open-swatch {
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: #ff3c3c;
 }
 
 .market-timetable-row {
@@ -930,7 +962,7 @@ button.page-tab-add.insight {
 
 .market-tick {
   flex-shrink: 0;
-  width: 46px;
+  width: var(--tick-w);
   text-align: center;
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);

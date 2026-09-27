@@ -103,15 +103,29 @@ function computeTimetable(now: Date): TimetableTick[] {
   }))
 }
 
+// KST clock time of the regular-session open (09:30 ET) — shifts by an hour
+// with US daylight saving, so it's computed rather than hard-coded.
+function computeOpenKst(now: Date): string {
+  const etDateStr = now.toLocaleDateString('en-CA', { timeZone: ET_ZONE })
+  const [y, m, d] = etDateStr.split('-').map(Number)
+  return formatKst(getUtcForZonedTime(y, m, d, 9, 30, ET_ZONE))
+}
+
+// The 9:00 and 10:00 columns are centered on their hour, so the border
+// between them sits exactly at 9:30.
+const OPEN_LINE_AFTER_COLUMNS = ET_HOURS.indexOf(9) + 1
+
 export function MarketHoursBar() {
   const [info, setInfo] = useState<SessionInfo>(() => computeSessionInfo(new Date()))
   const [ticks, setTicks] = useState<TimetableTick[]>(() => computeTimetable(new Date()))
+  const [openKst, setOpenKst] = useState(() => computeOpenKst(new Date()))
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       const now = new Date()
       setInfo(computeSessionInfo(now))
       setTicks(computeTimetable(now))
+      setOpenKst(computeOpenKst(now))
     }, 15000)
     return () => window.clearInterval(timer)
   }, [])
@@ -124,8 +138,18 @@ export function MarketHoursBar() {
           {info.label}
         </span>
         <span className="market-now">KST {info.nowKst}</span>
+        <span className="market-open-label">
+          <span className="market-open-swatch" />
+          미장 개장 KST {openKst} (ET 9:30)
+        </span>
       </div>
       <div className="market-timetable">
+        <div className="market-timetable-inner">
+        <div
+          className="market-open-line"
+          style={{ left: `calc(var(--tick-w) * ${OPEN_LINE_AFTER_COLUMNS})` }}
+          title={`정규장 개장 ET 9:30 = KST ${openKst}`}
+        />
         <div className="market-timetable-row">
           {ticks.map((t) => (
             <span
@@ -145,6 +169,7 @@ export function MarketHoursBar() {
               {t.kst}
             </span>
           ))}
+        </div>
         </div>
       </div>
     </div>
