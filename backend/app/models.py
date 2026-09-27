@@ -83,6 +83,7 @@ class InsightEntry(BaseModel):
     content_html: str
     updated_at: float
     image_a: Optional[ImageSlot] = None
+    image_b: Optional[ImageSlot] = None
     result: Literal["", "pass", "fail"] = ""
     ma_spacing: Literal["", "converge", "diverge"] = ""
     period_symmetry: Literal["", "after", "before"] = ""
@@ -162,6 +163,18 @@ class RemindFolderVideo(BaseModel):
 class RemindFolder(BaseModel):
     folder: str
     videos: List[RemindFolderVideo] = Field(default_factory=list)
+
+
+class OneMinNote(BaseModel):
+    """A freeform 'My Insight' memo attached to either the PASS or FAIL
+    column of the 1분봉 비교 page — an append-only running list, not tied to
+    any single chart."""
+
+    id: str
+    column: Literal["pass", "fail"]
+    text: str
+    position: int = 0
+    created_at: float = Field(default_factory=now)
 
 
 class StudyPlanNode(BaseModel):

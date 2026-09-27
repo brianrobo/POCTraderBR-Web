@@ -113,11 +113,20 @@ export interface InsightEntry {
   content_html: string
   updated_at: number
   image_a: ImageSlot | null
+  image_b: ImageSlot | null
   result: PageResult
   ma_spacing: MaSpacing
   period_symmetry: PeriodSymmetry
   accumulation_checked: boolean
   leading_span2: LeadingSpan2
+}
+
+export interface OneMinNote {
+  id: string
+  column: 'pass' | 'fail'
+  text: string
+  position: number
+  created_at: number
 }
 
 export interface RemindNote {
@@ -273,6 +282,13 @@ export const api = {
     }),
   deleteStudyPlanNode: (id: string) =>
     request<{ ok: boolean }>(`/api/study-plan-nodes/${id}`, { method: 'DELETE' }),
+
+  listOneMinNotes: () => request<OneMinNote[]>('/api/one-min-notes'),
+  createOneMinNote: (column: 'pass' | 'fail', text: string) =>
+    request<OneMinNote>('/api/one-min-notes', { method: 'POST', body: JSON.stringify({ column, text }) }),
+  updateOneMinNote: (id: string, text: string) =>
+    request<OneMinNote>(`/api/one-min-notes/${id}`, { method: 'PATCH', body: JSON.stringify({ text }) }),
+  deleteOneMinNote: (id: string) => request<{ ok: boolean }>(`/api/one-min-notes/${id}`, { method: 'DELETE' }),
 
   getRemindNote: () => request<RemindNote>('/api/remind/note'),
   updateRemindNote: (note_html: string) =>

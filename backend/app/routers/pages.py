@@ -85,6 +85,7 @@ def list_insights(session: Session = Depends(get_session)) -> List[InsightEntry]
                 content_html=row.note_html_a,
                 updated_at=row.updated_at,
                 image_a=page.image_a,
+                image_b=page.image_b,
                 result=page.result,
                 ma_spacing=page.ma_spacing,
                 period_symmetry=page.period_symmetry,

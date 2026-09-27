@@ -325,9 +325,6 @@ button.page-tab-add.insight {
   color: #f5c518;
 }
 
-.insight-page-body {
-  max-width: 1400px;
-}
 
 .insight-result-bar {
   display: flex;
@@ -434,11 +431,33 @@ button.page-tab-add.insight {
   min-width: 0;
 }
 
+.insight-charts > .chart-pane:last-child {
+  flex: 0 1 25%;
+}
+
 .insight-card-images {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 480px));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 6px;
+}
+
+.insight-card-images > * {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.insight-card-images > *:only-child {
+  flex: 1 1 100%;
+}
+
+/* Two images = main chart + 돌파 확대 — split 70/30 rather than even. */
+.insight-card-images > *:first-child:not(:only-child) {
+  flex: 7 1 0%;
+}
+
+.insight-card-images > *:nth-child(2) {
+  flex: 3 1 0%;
 }
 
 /* Insight feed (cross-item rollup) */
@@ -1371,22 +1390,20 @@ button.page-tab-add.insight {
 
 .annotated-chart {
   position: relative;
-  line-height: 0;
+  width: 100%;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .annotated-chart-overlay {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
   pointer-events: none;
 }
 
 .remind-chart-img {
   display: block;
-  width: 100%;
-  border-radius: 4px;
-  background: #000;
+  position: absolute;
 }
 
 .remind-chart-note {
@@ -1902,6 +1919,72 @@ button.page-tab-add.insight {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.one-min-notes {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 8px 10px;
+}
+
+.one-min-notes-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.one-min-notes-add {
+  display: flex;
+  gap: 6px;
+}
+
+.one-min-notes-add input {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.one-min-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.one-min-note-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--panel-alt);
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: default;
+}
+
+.one-min-note-card span {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.one-min-note-card button {
+  flex-shrink: 0;
+  padding: 0 5px;
+  font-size: 11px;
 }
 
 .one-min-column-title {

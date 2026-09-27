@@ -214,6 +214,13 @@ export function PageView({ item, jumpToPageId }: Props) {
                 label=""
                 onPageUpdate={updatePage}
               />
+              <ChartCanvas
+                key={`${selectedPage.id}-b`}
+                page={selectedPage}
+                slot="b"
+                label="돌파 확대"
+                onPageUpdate={updatePage}
+              />
             </div>
           </div>
         ) : (

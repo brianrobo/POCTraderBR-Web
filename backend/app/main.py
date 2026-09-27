@@ -10,7 +10,7 @@ from .db import SessionLocal, ensure_schema
 from .models import REMIND_NOTE_ID, ROOT_CATEGORY_ID, ROOT_STUDY_PLAN_ID
 from .orm import CategoryORM, RemindNoteORM, StudyPlanNodeORM
 from .paths import ASSETS_DIR, DATA_DIR, REMIND_VIDEO_DIR
-from .routers import assets, categories, items, pages, remind, reference, study_plan, todos
+from .routers import assets, categories, items, one_min_notes, pages, remind, reference, study_plan, todos
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
@@ -49,6 +49,7 @@ app.include_router(todos.router)
 app.include_router(reference.router)
 app.include_router(study_plan.router)
 app.include_router(remind.router)
+app.include_router(one_min_notes.router)
 
 app.mount("/uploads", StaticFiles(directory=str(ASSETS_DIR)), name="uploads")
 

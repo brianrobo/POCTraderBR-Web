@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type InsightEntry, type PageResult } from '../api/client'
-import { AnnotatedChart, uploadUrl } from './AnnotatedChart'
+import { ChartComparisonImages } from './AnnotatedChart'
 
 interface Props {
   onOpen: (itemId: string, pageId: string) => void
@@ -90,11 +90,7 @@ export function InsightFeed({ onOpen }: Props) {
               <span className="insight-card-date">{formatDate(e.updated_at)}</span>
             </div>
             <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: e.content_html }} />
-            {e.image_a && (
-              <div className="insight-card-images">
-                <AnnotatedChart src={uploadUrl(e.image_a.path)} strokes={e.image_a.strokes} alt={`${e.item_name} 화면`} />
-              </div>
-            )}
+            <ChartComparisonImages imageA={e.image_a} imageB={e.image_b} itemName={e.item_name} />
           </div>
         ))
       )}

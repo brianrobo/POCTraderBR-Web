@@ -106,6 +106,16 @@ class RemindVideoORM(Base):
     created_at: Mapped[float] = mapped_column(default=0.0)
 
 
+class OneMinNoteORM(Base):
+    __tablename__ = "one_min_notes"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    column: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text, default="")
+    position: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
 class StudyPlanNodeORM(Base):
     __tablename__ = "study_plan_nodes"
 
