@@ -6,8 +6,8 @@ from typing import Optional, Type
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .models import Category, CodeInfo, FormulaInfo, ImageSlot, Item, Page, Stroke, StudyPlanNode, Todo
-from .orm import CategoryORM, CodeInfoORM, FormulaInfoORM, ItemORM, PageORM, StudyPlanNodeORM, TodoORM
+from .models import Category, CodeInfo, FormulaInfo, ImageSlot, Item, Page, RemindVideo, Stroke, StudyPlanNode, Todo
+from .orm import CategoryORM, CodeInfoORM, FormulaInfoORM, ItemORM, PageORM, RemindVideoORM, StudyPlanNodeORM, TodoORM
 
 
 def category_to_api(session: Session, row: CategoryORM) -> Category:
@@ -116,6 +116,10 @@ def study_plan_node_to_api(session: Session, row: StudyPlanNodeORM) -> StudyPlan
         end_date=row.end_date,
         result_html=row.result_html,
     )
+
+
+def remind_video_to_api(row: RemindVideoORM) -> RemindVideo:
+    return RemindVideo(id=row.id, title=row.title, path=row.path, created_at=row.created_at)
 
 
 def next_position(session: Session, model: Type, **filters: str) -> int:

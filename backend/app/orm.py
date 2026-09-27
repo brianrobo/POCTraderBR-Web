@@ -84,6 +84,23 @@ class FormulaInfoORM(Base):
     created_at: Mapped[float] = mapped_column(default=0.0)
 
 
+class RemindNoteORM(Base):
+    __tablename__ = "remind_note"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    note_html: Mapped[str] = mapped_column(Text, default="")
+
+
+class RemindVideoORM(Base):
+    __tablename__ = "remind_videos"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(Text)
+    path: Mapped[str] = mapped_column(Text)
+    position: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
 class StudyPlanNodeORM(Base):
     __tablename__ = "study_plan_nodes"
 

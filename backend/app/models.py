@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 ROOT_CATEGORY_ID = "__ROOT__"
 ROOT_STUDY_PLAN_ID = "__STUDY_ROOT__"
+REMIND_NOTE_ID = "__REMIND__"
 
 
 def new_id() -> str:
@@ -122,6 +123,34 @@ class FormulaInfo(BaseModel):
     name: str
     content: str = ""
     created_at: float = Field(default_factory=now)
+
+
+class RemindNote(BaseModel):
+    """Single global note reviewed before trading — no list, just one block."""
+
+    id: str
+    note_html: str = ""
+
+
+class RemindVideo(BaseModel):
+    id: str
+    title: str
+    path: str
+    created_at: float = Field(default_factory=now)
+
+
+class RemindFolderVideo(BaseModel):
+    """A video file found in the on-disk drop folder (not a DB row)."""
+
+    name: str
+    path: str
+    size: int
+    modified: float
+
+
+class RemindFolder(BaseModel):
+    folder: str
+    videos: List[RemindFolderVideo] = Field(default_factory=list)
 
 
 class StudyPlanNode(BaseModel):

@@ -5,4 +5,5 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data"
 ASSETS_DIR = ROOT_DIR / "assets"
+REMIND_VIDEO_DIR = ASSETS_DIR / "remind_videos"
 SQLITE_PATH = DATA_DIR / "notes_db.sqlite3"

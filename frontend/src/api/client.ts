@@ -105,6 +105,30 @@ export interface InsightEntry {
   updated_at: number
 }
 
+export interface RemindNote {
+  id: string
+  note_html: string
+}
+
+export interface RemindVideo {
+  id: string
+  title: string
+  path: string
+  created_at: number
+}
+
+export interface RemindFolderVideo {
+  name: string
+  path: string
+  size: number
+  modified: number
+}
+
+export interface RemindFolder {
+  folder: string
+  videos: RemindFolderVideo[]
+}
+
 const STOCK_NAME_FIELD: Record<ImageSlotKey, keyof Page> = {
   a: 'stock_name_a',
   a2: 'stock_name_a2',
@@ -223,4 +247,20 @@ export const api = {
     }),
   deleteStudyPlanNode: (id: string) =>
     request<{ ok: boolean }>(`/api/study-plan-nodes/${id}`, { method: 'DELETE' }),
+
+  getRemindNote: () => request<RemindNote>('/api/remind/note'),
+  updateRemindNote: (note_html: string) =>
+    request<RemindNote>('/api/remind/note', { method: 'PATCH', body: JSON.stringify({ note_html }) }),
+  getRemindFolder: () => request<RemindFolder>('/api/remind/folder'),
+  listRemindVideos: () => request<RemindVideo[]>('/api/remind/videos'),
+  uploadRemindVideo: (title: string, file: File) => {
+    const form = new FormData()
+    form.append('title', title)
+    form.append('file', file)
+    return request<RemindVideo>('/api/remind/videos', { method: 'POST', body: form })
+  },
+  renameRemindVideo: (id: string, title: string) =>
+    request<RemindVideo>(`/api/remind/videos/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
+  deleteRemindVideo: (id: string) =>
+    request<{ ok: boolean }>(`/api/remind/videos/${id}`, { method: 'DELETE' }),
 }

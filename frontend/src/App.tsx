@@ -10,6 +10,7 @@ import { StudyPlanPage } from './components/StudyPlanPage'
 import { MarketHoursBar } from './components/MarketHoursBar'
 import { InsightFeed } from './components/InsightFeed'
 import { LiveAnalysisPage } from './components/LiveAnalysisPage'
+import { RemindPage } from './components/RemindPage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -19,12 +20,14 @@ const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
-type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live'
+type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind'
 type Selection = { type: 'item' | 'category'; id: string } | null
 
 function loadActiveTab(): Tab {
   const raw = localStorage.getItem(ACTIVE_TAB_KEY)
-  return raw === 'reference' || raw === 'study' || raw === 'insights' || raw === 'live' ? raw : 'notes'
+  return raw === 'reference' || raw === 'study' || raw === 'insights' || raw === 'live' || raw === 'remind'
+    ? raw
+    : 'notes'
 }
 
 function loadLastSelection(): Selection {
@@ -166,6 +169,13 @@ export default function App() {
         >
           실시간 분석
         </button>
+        <button
+          type="button"
+          className={activeTab === 'remind' ? 'active' : ''}
+          onClick={() => setActiveTab('remind')}
+        >
+          Remind
+        </button>
       </div>
       {activeTab === 'notes' ? (
         <div className="app-layout">
@@ -205,8 +215,10 @@ export default function App() {
         <StudyPlanPage />
       ) : activeTab === 'insights' ? (
         <InsightFeed onOpen={openInsight} />
-      ) : (
+      ) : activeTab === 'live' ? (
         <LiveAnalysisPage />
+      ) : (
+        <RemindPage />
       )}
     </div>
   )

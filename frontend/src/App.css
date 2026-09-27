@@ -1130,3 +1130,437 @@ button.page-tab-add.insight {
   font: inherit;
   padding: 3px 6px;
 }
+
+/* Remind page */
+.remind-page {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.remind-left,
+.remind-right {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-right: 6px;
+}
+
+.remind-note-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 1000px;
+}
+
+.remind-video-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.remind-heading {
+  margin: 0;
+  font-size: 16px;
+}
+
+.remind-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remind-steps-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 1000px;
+}
+
+.remind-steps-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.remind-arrow-row {
+  align-items: center;
+}
+
+.remind-step-arrow {
+  text-align: center;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-dim);
+}
+
+.remind-step-comment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.remind-step-tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #10131a;
+  background: #8a8f9c;
+}
+
+.remind-step-comment.tone-hypothesis .remind-step-tag {
+  background: #f5c518;
+}
+
+.remind-step-comment.tone-expect .remind-step-tag {
+  background: #2ecc71;
+}
+
+.remind-step-comment.tone-verify .remind-step-tag {
+  background: var(--accent);
+  color: white;
+}
+
+.remind-step-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.remind-step-col > .remind-step {
+  flex: 1;
+}
+
+.remind-detail {
+  margin-left: 24px;
+  padding: 8px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.remind-detail summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent-hover);
+}
+
+.remind-detail[open] summary {
+  margin-bottom: 8px;
+}
+
+.remind-detail-title {
+  margin-top: 8px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.remind-detail ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
+.remind-detail li strong {
+  color: #f5c518;
+}
+
+.remind-substep {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-left: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-left: 4px solid;
+  background: var(--panel);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.remind-substep.ok {
+  border-left-color: #2ecc71;
+}
+
+.remind-substep.fail {
+  border-left-color: var(--danger);
+}
+
+.remind-substep-no {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.remind-substep em {
+  font-style: normal;
+  color: var(--text-dim);
+}
+
+.remind-substep.fail strong:last-child {
+  color: var(--danger);
+}
+
+.remind-nogo {
+  max-width: 1000px;
+  margin-top: 6px;
+  padding: 12px 16px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: rgba(255, 60, 60, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remind-nogo-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.remind-nogo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.remind-nogo-mark {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.remind-nogo-quote {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.remind-nogo-instead {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.remind-nogo-instead strong {
+  color: #f5c518;
+}
+
+.remind-verify {
+  max-width: 1000px;
+  margin-top: 6px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remind-verify-note {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.remind-verify-callout {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border-left: 4px solid var(--accent);
+  background: rgba(45, 107, 255, 0.1);
+  font-size: 14px;
+}
+
+.remind-verify-callout strong {
+  color: #f5c518;
+}
+
+.remind-verify-text {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.remind-verify-text strong {
+  color: #f5c518;
+}
+
+.remind-module {
+  max-width: 1000px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remind-module-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-hover);
+}
+
+.remind-module-flow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.remind-module-arrow {
+  font-size: 20px;
+  color: var(--text-dim);
+}
+
+.remind-module-chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.remind-module-chip.exit {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.remind-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.remind-step-no {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.remind-step strong {
+  color: #f5c518;
+}
+
+@media (max-width: 1100px) {
+  .remind-page {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .remind-left,
+  .remind-right {
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .remind-steps-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.remind-video-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.remind-folder-path {
+  font-size: 12px;
+  color: var(--text-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.remind-folder-path code {
+  color: var(--text);
+  background: var(--panel-alt);
+  padding: 3px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+  user-select: all;
+}
+
+.remind-video-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.remind-video-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.remind-video-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.remind-video-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  cursor: default;
+}
+
+.remind-video-title-row button {
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+.remind-video-player {
+  width: 100%;
+  max-height: 60vh;
+  background: #000;
+  border-radius: 4px;
+}

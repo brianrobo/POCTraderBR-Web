@@ -7,16 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .db import SessionLocal, ensure_schema
-from .models import ROOT_CATEGORY_ID, ROOT_STUDY_PLAN_ID
-from .orm import CategoryORM, StudyPlanNodeORM
-from .paths import ASSETS_DIR, DATA_DIR
-from .routers import assets, categories, items, pages, reference, study_plan, todos
+from .models import REMIND_NOTE_ID, ROOT_CATEGORY_ID, ROOT_STUDY_PLAN_ID
+from .orm import CategoryORM, RemindNoteORM, StudyPlanNodeORM
+from .paths import ASSETS_DIR, DATA_DIR, REMIND_VIDEO_DIR
+from .routers import assets, categories, items, pages, remind, reference, study_plan, todos
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+REMIND_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
 ensure_schema()
 
@@ -26,6 +27,9 @@ with SessionLocal() as _session:
         _session.commit()
     if _session.get(StudyPlanNodeORM, ROOT_STUDY_PLAN_ID) is None:
         _session.add(StudyPlanNodeORM(id=ROOT_STUDY_PLAN_ID, name="학습 계획", parent_id=None, position=0))
+        _session.commit()
+    if _session.get(RemindNoteORM, REMIND_NOTE_ID) is None:
+        _session.add(RemindNoteORM(id=REMIND_NOTE_ID, note_html=""))
         _session.commit()
 
 app = FastAPI(title="POCTraderBR Web")
@@ -44,6 +48,7 @@ app.include_router(assets.router)
 app.include_router(todos.router)
 app.include_router(reference.router)
 app.include_router(study_plan.router)
+app.include_router(remind.router)
 
 app.mount("/uploads", StaticFiles(directory=str(ASSETS_DIR)), name="uploads")
 
