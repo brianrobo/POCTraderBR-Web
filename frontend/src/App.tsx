@@ -218,7 +218,7 @@ export default function App() {
       ) : activeTab === 'live' ? (
         <LiveAnalysisPage />
       ) : (
-        <RemindPage />
+        <RemindPage onOpenPage={openInsight} />
       )}
     </div>
   )

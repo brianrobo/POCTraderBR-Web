@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { api, type RemindFolder, type RemindNote, type RemindVideo } from '../api/client'
+import { api, type Page, type RemindFolder, type RemindNote, type RemindVideo, type Stroke } from '../api/client'
 import { NoteEditor } from './NoteEditor'
 
 const APPROACH_STEPS = [
@@ -71,15 +71,85 @@ const APPROACH_STEPS = [
   },
 ]
 
+const NO_TRADE_CHARTS = [
+  {
+    itemId: '5a95385d-8fe5-4867-ae23-3e089da7959b',
+    pageId: '699c9a02-ac66-422e-9272-f89c4f7ad716',
+    date: '(26.09.24)',
+    name: '스마트 로지스틱 글로벌',
+    timeframe: '1분봉',
+    note: '저렇게 올렸다가 바로 떨어지는 차트. 바로 노리지 말 것. 대부분 이런 걸 노렸다가 FAIL.',
+  },
+  {
+    itemId: '4dc26e35-a250-4bf8-8146-edf318077c12',
+    pageId: 'e4db8ae3-a1fe-46ba-8f54-16bf189ea5f1',
+    date: '(26.09.24)',
+    name: '이지고 테크놀러지',
+    timeframe: '3분봉',
+    note: '눌림에 잡았는데, 이후 다시 매집을 했는지 올라왔다가 미세한 거래량만 터트리고 죽었다.',
+  },
+]
+
 function uploadUrl(path: string): string {
   return `/uploads/${path.split('/').map(encodeURIComponent).join('/')}`
 }
 
-export function RemindPage() {
+// Read-only render of a chart image with its saved pen/text annotations.
+// Strokes are stored in the image's native pixel coordinates, so an SVG whose
+// viewBox is the image's natural size lines up at any display width.
+function AnnotatedChart({ src, strokes, alt }: { src: string; strokes: Stroke[]; alt: string }) {
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null)
+  return (
+    <div className="annotated-chart">
+      <img
+        className="remind-chart-img"
+        src={src}
+        alt={alt}
+        onLoad={(e) => setSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+      />
+      {size && (
+        <svg className="annotated-chart-overlay" viewBox={`0 0 ${size.w} ${size.h}`} preserveAspectRatio="none">
+          {strokes.map((s, i) =>
+            s.kind === 'text' ? (
+              <text
+                key={i}
+                x={s.x}
+                y={s.y}
+                fontSize={s.font_size}
+                fill={s.color}
+                fontFamily="'Times New Roman', serif"
+                dominantBaseline="text-before-edge"
+              >
+                {s.text}
+              </text>
+            ) : (
+              <path
+                key={i}
+                d={s.points.map(([x, y], j) => `${j === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ')}
+                stroke={s.color}
+                strokeWidth={s.width}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ),
+          )}
+        </svg>
+      )}
+    </div>
+  )
+}
+
+interface Props {
+  onOpenPage: (itemId: string, pageId: string) => void
+}
+
+export function RemindPage({ onOpenPage }: Props) {
   const [note, setNote] = useState<RemindNote | null>(null)
   const [videos, setVideos] = useState<RemindVideo[]>([])
   const [folder, setFolder] = useState<RemindFolder | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [chartPages, setChartPages] = useState<Record<string, Page | null>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadFolder = () => api.getRemindFolder().then(setFolder)
@@ -88,6 +158,12 @@ export function RemindPage() {
     api.getRemindNote().then(setNote)
     api.listRemindVideos().then(setVideos)
     loadFolder()
+    NO_TRADE_CHARTS.forEach((ch) => {
+      api
+        .getPage(ch.pageId)
+        .then((p) => setChartPages((prev) => ({ ...prev, [ch.pageId]: p })))
+        .catch(() => setChartPages((prev) => ({ ...prev, [ch.pageId]: null })))
+    })
   }, [])
 
   const onFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,6 +308,44 @@ export function RemindPage() {
       </div>
 
       <div className="remind-right">
+        <section className="remind-charts">
+          <h2 className="remind-heading danger">절대 바로 매매하면 안 되는 차트</h2>
+          {NO_TRADE_CHARTS.map((ch) => {
+            const page = chartPages[ch.pageId]
+            const img = page?.image_b
+            return (
+              <div key={ch.pageId} className="remind-chart-card">
+                <div className="remind-chart-head">
+                  <span className="remind-chart-title">
+                    {ch.date} {ch.name}
+                  </span>
+                  <span className="remind-chart-fail">FAIL</span>
+                  <span className="remind-chart-tf">{ch.timeframe}</span>
+                  <button
+                    type="button"
+                    className="remind-chart-open"
+                    onClick={() => onOpenPage(ch.itemId, ch.pageId)}
+                  >
+                    원본 보기
+                  </button>
+                </div>
+                {img ? (
+                  <AnnotatedChart
+                    src={uploadUrl(img.path)}
+                    strokes={img.strokes}
+                    alt={`${ch.name} ${ch.timeframe}`}
+                  />
+                ) : page === null ? (
+                  <div className="remind-video-empty">원본 차트를 찾을 수 없습니다.</div>
+                ) : (
+                  <div className="remind-video-empty">불러오는 중...</div>
+                )}
+                <div className="remind-chart-note">{ch.note}</div>
+              </div>
+            )
+          })}
+        </section>
+
         <section className="remind-video-col">
           <div className="remind-video-header">
             <h2 className="remind-heading">영상 폴더</h2>
