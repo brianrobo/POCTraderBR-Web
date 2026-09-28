@@ -3,6 +3,89 @@ import { api, type Page, type RemindFolder, type RemindNote, type RemindVideo } 
 import { AnnotatedChart, uploadUrl } from './AnnotatedChart'
 import { NoteEditor } from './NoteEditor'
 
+interface MantraExtra {
+  link?: string
+  points?: string[]
+  quote?: string
+  paragraphs?: string[]
+  sections?: { heading: string; points: string[] }[]
+  image?: string
+}
+
+interface Mantra {
+  title: string
+  detail: string
+  extras?: MantraExtra[]
+}
+
+const MANTRAS: Mantra[] = [
+  {
+    title: '무한 행동력',
+    detail: '오직 행동만이 인생을 바꿀 수 있다 / 움직이는 바보가 멈춘 천재 이긴다',
+    extras: [
+      {
+        link: 'https://www.instagram.com/p/DdyAX3Ak0HS/?img_index=10&stkn=MXA2bWkzMXcxdnVzMQ==',
+        points: [
+          '돈은 속도를 좋아하고, 가난은 망설임을 좋아한다',
+          'Prince는 1,000곡 중 6곡만, Picasso는 5만 점 중 4점만 알려짐 — 많이 만들고 시도하고 실패해야 한다',
+          '완벽함을 고민하기보다는 서툴더라도 움직이는 것이 현명하다',
+          '생각이 길어질수록 두려움만 커진다',
+          '타인의 신뢰를 기다리기 전에 자기 자신을 먼저 믿어야 한다',
+        ],
+        image: '/remind/believe-in-yourself.png',
+      },
+      {
+        quote: '행동하지 않으면 인생은 바뀌지 않는다. - 브라이언 트레이시',
+        paragraphs: [
+          '성공에 필요한 모든 지식과 기술은 후천적으로 배울 수 있다는 단순하지만 강력한 진리였다.',
+          '해고당했던 쓰라린 경험들로 인해, 스스로 아무것도 이룰 수 없을 거라 단정 지어버렸다. 평생 가난하게 살며 친구 집을 전전하는 것이 내 운명이라고 믿었다.',
+          '하버드를 비롯한 유수의 대학교에서 선천적인 지능과 우수한 성적이 성공에 미치는 영향에 대해 연구했지만, 결과적으로 그중 어떤 요소도 성공과 직접적인 연관성을 보이지 않았다. 학위도, 언어 능력도, 재산도 없이 빈털터리로 미국에 와서 백만장자가 된 사람은 정말 많다.',
+          '성공은 교육, 기술, 집안, 심지어 운과도 아무런 연관이 없다. 성공은 전적으로 개인의 행동에 의해 좌우된다. 그리고 모든 개인에게는 특별한 일을 해낼 능력이 있다.',
+          '당신의 자아는 어린 시절 부모가 당신을 대하는 방식에 의해 처음 형성된다. 어렸을 때부터 부정적인 생각에 노출되면 나이가 들수록 점점 부정적으로 변할 수밖에 없다. 그렇다고 어린 시절 양육 환경만 탓하고 있을 수는 없는 노릇 아닌가? 1인분의 삶을 오롯이 책임지는 어른이 된 이상, 자기 자신에 대한 긍정적인 인식과 잠재력에 대해 열린 마음을 지녀야 한다.',
+          '당신의 배경과 현재 상황이 어떻든 언젠가 분명 홀로 운전석에 앉아야 하는 순간이 온다. 인생이라는 차의 운전대를 잡고 어디로 향할 것인지 선택해야 하는 것이다. 어떤 마음으로 어떻게 바라보고 어떤 길을 선택할지는 모두 당신에게 달렸다. 당신이 허락하지 않는 한 과거의 어떤 것도 지금의 당신에게 아무런 영향을 끼치지 못한다는 사실을 늘 기억하길 바란다.',
+        ],
+      },
+    ],
+  },
+  {
+    title: '절실함',
+    detail: '5만원이 없어서 졸라 불쌍해했던, 악을 갖게 한',
+  },
+  {
+    title: '극상위권',
+    detail: '단 한 번도 1등을 놓친 적이 없음. 방법을 아니깐',
+    extras: [
+      {
+        link: 'https://youtu.be/OsR8KlXA9aI?si=5hC623HWYl3g7TwE',
+        points: ['현우진 삶의 자세 | 동기부여 | 공부자극'],
+        sections: [
+          {
+            heading: '1. 학습 및 삶의 태도 (0:00 - 1:43)',
+            points: [
+              '기준(Standard) 높이기: 주변의 평범한 수준에 맞추려 하지 말고, 더 높은 목표를 가져야 함을 강조. 주변을 보며 문제점을 발견하고 개선하는 자세가 중요.',
+              '학습의 본질: 단순히 몸만 힘들게 공부하는 것이 아니라, 자신이 모르는 부분을 찾아 보완하는 것이 공부의 기본 (1:45 - 2:00).',
+            ],
+          },
+          {
+            heading: '2. 노력과 자기 관리 (2:27 - 3:52)',
+            points: [
+              "압도적인 1등의 습관: 항상 최상위권을 유지했던 비결로 '모르는 것을 공부하는 태도'를 꼽음.",
+              '노력의 즐거움: 공부를 억지로 하는 것이 아니라, 할 일을 하나씩 해결해 나가는 과정에서 느끼는 희열을 습관화하라고 조언.',
+              '재능에 대한 관점: 재능이 있더라도 노력을 해야만 그 빛을 발할 수 있으며, 노력하는 과정 자체가 중요한 능력임을 강조.',
+            ],
+          },
+          {
+            heading: '3. 변화의 방법 (3:59 - 4:22)',
+            points: [
+              '태도의 변화: 태도와 공부 스타일은 쉽게 바뀌지 않으므로, 단번에 바꾸려 하기보다 서서히 개선해 나가야 한다고 마무리.',
+            ],
+          },
+        ],
+      },
+    ],
+  },
+]
+
 const APPROACH_STEPS = [
   {
     before: '',
@@ -150,6 +233,62 @@ export function RemindPage({ onOpenPage }: Props) {
   return (
     <div className="remind-page">
       <div className="remind-left">
+        <section className="remind-mantras">
+          {MANTRAS.map((m, i) =>
+            m.extras ? (
+              <details key={i} className="remind-mantra">
+                <summary className="remind-mantra-row">
+                  <span className="remind-mantra-title">{m.title}</span>
+                  <span className="remind-mantra-detail">{m.detail}</span>
+                  <span className="remind-mantra-toggle">상세 보기</span>
+                </summary>
+                {m.extras.map((ex, k) => (
+                  <div key={k} className="remind-mantra-extra-body">
+                    {ex.quote && <div className="remind-mantra-quote">{ex.quote}</div>}
+                    {ex.link && (
+                      <a href={ex.link} target="_blank" rel="noreferrer" className="remind-mantra-link">
+                        {ex.link}
+                      </a>
+                    )}
+                    {ex.paragraphs && (
+                      <div className="remind-mantra-paragraphs">
+                        {ex.paragraphs.map((p, j) => (
+                          <p key={j}>{p}</p>
+                        ))}
+                      </div>
+                    )}
+                    {ex.points && (
+                      <ul>
+                        {ex.points.map((p, j) => (
+                          <li key={j}>{p}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {ex.sections?.map((sec, s) => (
+                      <div key={s} className="remind-mantra-section">
+                        <div className="remind-mantra-section-heading">{sec.heading}</div>
+                        <ul>
+                          {sec.points.map((p, j) => (
+                            <li key={j}>{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                    {ex.image && <img src={ex.image} alt="" className="remind-mantra-image" />}
+                  </div>
+                ))}
+              </details>
+            ) : (
+              <div key={i} className="remind-mantra">
+                <div className="remind-mantra-row">
+                  <span className="remind-mantra-title">{m.title}</span>
+                  <span className="remind-mantra-detail">{m.detail}</span>
+                </div>
+              </div>
+            ),
+          )}
+        </section>
+
         <section className="remind-steps">
           <div className="remind-module">
             <div className="remind-module-title">세력주 매매 모듈</div>
