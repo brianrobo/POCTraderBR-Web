@@ -1989,6 +1989,18 @@ summary.remind-mantra-row::-webkit-details-marker {
   gap: 8px;
 }
 
+.one-min-stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.one-min-month-select {
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
 .one-min-stats {
   border-collapse: collapse;
   font-size: 13px;

@@ -11,6 +11,18 @@ function pct(n: number, total: number): string {
   return total === 0 ? '-' : `${Math.round((n / total) * 100)}%`
 }
 
+const MONTH_KEY = 'poctrader:oneMinMonth'
+
+function monthOf(itemName: string): string | null {
+  const m = /^\((\d{2})\.(\d{2})\.\d{2}\)/.exec(itemName)
+  return m ? `20${m[1]}-${m[2]}` : null
+}
+
+function monthLabel(key: string): string {
+  const [y, m] = key.split('-')
+  return `${y}년 ${Number(m)}월`
+}
+
 function StatsTable({ entries }: { entries: InsightEntry[] }) {
   const pass = entries.filter((e) => e.result === 'pass')
   const fail = entries.filter((e) => e.result === 'fail')
@@ -113,6 +125,11 @@ export function OneMinComparePage() {
   const [entries, setEntries] = useState<InsightEntry[]>([])
   const [notes, setNotes] = useState<OneMinNote[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => localStorage.getItem(MONTH_KEY) ?? 'all')
+
+  useEffect(() => {
+    localStorage.setItem(MONTH_KEY, selectedMonth)
+  }, [selectedMonth])
 
   const refresh = () => api.listInsights().then(setEntries)
 
@@ -170,15 +187,38 @@ export function OneMinComparePage() {
 
   const classified = entries.filter((e) => e.result === 'pass' || e.result === 'fail')
 
+  const monthCounts = new Map<string, number>()
+  for (const e of classified) {
+    const key = monthOf(e.item_name)
+    if (key) monthCounts.set(key, (monthCounts.get(key) ?? 0) + 1)
+  }
+  const months = [...monthCounts.keys()].sort().reverse()
+  const activeMonth = selectedMonth === 'all' || monthCounts.has(selectedMonth) ? selectedMonth : 'all'
+  const scoped = activeMonth === 'all' ? classified : classified.filter((e) => monthOf(e.item_name) === activeMonth)
+
   return (
     <div className="one-min-wrap">
       <div className="one-min-stats-bar">
-        <h2 className="remind-heading">체크리스트 통계</h2>
-        <StatsTable entries={classified} />
+        <div className="one-min-stats-head">
+          <h2 className="remind-heading">체크리스트 통계</h2>
+          <select
+            className="one-min-month-select"
+            value={activeMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          >
+            <option value="all">전체 ({classified.length})</option>
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {monthLabel(m)} ({monthCounts.get(m)})
+              </option>
+            ))}
+          </select>
+        </div>
+        <StatsTable entries={scoped} />
       </div>
       <div className="one-min-page">
         {COLUMNS.map((col) => {
-          const items = classified.filter((e) => e.result === col.key)
+          const items = scoped.filter((e) => e.result === col.key)
           return (
             <div key={col.key} className={`one-min-column ${col.key}`}>
               <div className="one-min-column-header">
