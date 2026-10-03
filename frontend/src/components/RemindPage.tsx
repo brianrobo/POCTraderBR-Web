@@ -89,6 +89,27 @@ const MANTRAS: Mantra[] = [
 const APPROACH_STEPS = [
   {
     before: '',
+    key: '정규장 시작 직후(KST 오후 10:30)',
+    after: '에는 바로 매수하지 않는다',
+    tone: 'premise',
+    tag: '원칙',
+    comment: '개장 직후는 방향이 정해지지 않은 변동성 구간이다. 가설을 세우고 검증한 뒤에만 진입한다.',
+    detail: {
+      summary: '상세 보기 — 장 시작 전후 행동',
+      lead: '',
+      itemsTitle: '장 시작 전후 행동',
+      items: [
+        <>
+          <strong>KST 10:00부터 관심종목 추가</strong>
+        </>,
+        <>
+          <strong>하지만 장 시작 시 내려버리는 경우가 있어서 미리 매수 금지</strong>
+        </>,
+      ],
+    },
+  },
+  {
+    before: '',
     key: '물량을 아직 많이 넘기지 않았다',
     after: '',
     tone: 'premise',
@@ -321,7 +342,7 @@ export function RemindPage({ onOpenPage }: Props) {
                 <div className="remind-steps-row">
                   <div className="remind-step-col">
                     <div className="remind-step">
-                      <span className="remind-step-no">{i + 1}</span>
+                      <span className="remind-step-no">{i}</span>
                       <span>
                         {s.before}
                         <strong>{s.key}</strong>

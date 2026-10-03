@@ -244,6 +244,9 @@ export function OneMinComparePage() {
                       <div className="one-min-card-head">
                         <span className="one-min-card-title">{e.item_name}</span>
                       </div>
+                      {e.content_html && (
+                        <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: e.content_html }} />
+                      )}
                       {e.image_a || e.image_b ? (
                         <ChartComparisonImages imageA={e.image_a} imageB={e.image_b} itemName={e.item_name} />
                       ) : (
