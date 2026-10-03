@@ -103,29 +103,32 @@ function computeTimetable(now: Date): TimetableTick[] {
   }))
 }
 
-// KST clock time of the regular-session open (09:30 ET) — shifts by an hour
-// with US daylight saving, so it's computed rather than hard-coded.
-function computeOpenKst(now: Date): string {
+// KST clock time of an ET wall-clock time today — shifts with US daylight
+// saving, so it's computed rather than hard-coded.
+function computeKstAtEt(now: Date, etHour: number, etMinute: number): string {
   const etDateStr = now.toLocaleDateString('en-CA', { timeZone: ET_ZONE })
   const [y, m, d] = etDateStr.split('-').map(Number)
-  return formatKst(getUtcForZonedTime(y, m, d, 9, 30, ET_ZONE))
+  return formatKst(getUtcForZonedTime(y, m, d, etHour, etMinute, ET_ZONE))
 }
 
-// The 9:00 and 10:00 columns are centered on their hour, so the border
-// between them sits exactly at 9:30.
-const OPEN_LINE_AFTER_COLUMNS = ET_HOURS.indexOf(9) + 1
+// Columns are centered on their hour: the 9:00 and 10:00 columns meet at 9:30,
+// and the 16:00 column's center is 16:00 itself.
+const OPEN_LINE_LEFT_COLUMNS = ET_HOURS.indexOf(9) + 1
+const CLOSE_LINE_LEFT_COLUMNS = ET_HOURS.indexOf(16) + 0.5
 
 export function MarketHoursBar() {
   const [info, setInfo] = useState<SessionInfo>(() => computeSessionInfo(new Date()))
   const [ticks, setTicks] = useState<TimetableTick[]>(() => computeTimetable(new Date()))
-  const [openKst, setOpenKst] = useState(() => computeOpenKst(new Date()))
+  const [openKst, setOpenKst] = useState(() => computeKstAtEt(new Date(), 9, 30))
+  const [closeKst, setCloseKst] = useState(() => computeKstAtEt(new Date(), 16, 0))
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       const now = new Date()
       setInfo(computeSessionInfo(now))
       setTicks(computeTimetable(now))
-      setOpenKst(computeOpenKst(now))
+      setOpenKst(computeKstAtEt(now, 9, 30))
+      setCloseKst(computeKstAtEt(now, 16, 0))
     }, 15000)
     return () => window.clearInterval(timer)
   }, [])
@@ -142,13 +145,22 @@ export function MarketHoursBar() {
           <span className="market-open-swatch" />
           미장 개장 KST {openKst} (ET 9:30)
         </span>
+        <span className="market-close-label">
+          <span className="market-close-swatch" />
+          정규장 종료 KST {closeKst} (ET 16:00)
+        </span>
       </div>
       <div className="market-timetable">
         <div className="market-timetable-inner">
         <div
           className="market-open-line"
-          style={{ left: `calc(var(--tick-w) * ${OPEN_LINE_AFTER_COLUMNS})` }}
+          style={{ left: `calc(var(--tick-w) * ${OPEN_LINE_LEFT_COLUMNS})` }}
           title={`정규장 개장 ET 9:30 = KST ${openKst}`}
+        />
+        <div
+          className="market-close-line"
+          style={{ left: `calc(var(--tick-w) * ${CLOSE_LINE_LEFT_COLUMNS})` }}
+          title={`정규장 종료 ET 16:00 = KST ${closeKst}`}
         />
         <div className="market-timetable-row">
           {ticks.map((t) => (

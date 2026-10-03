@@ -1086,6 +1086,32 @@ button.page-tab-add.insight {
   background: #ff3c3c;
 }
 
+.market-close-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1px;
+  background: #2d6bff;
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.market-close-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #6b9bff;
+}
+
+.market-close-swatch {
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: #2d6bff;
+}
+
 .market-timetable-row {
   display: flex;
   width: max-content;
