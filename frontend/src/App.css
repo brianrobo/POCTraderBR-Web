@@ -520,6 +520,12 @@ button.page-tab-add.insight {
   font-weight: 700;
 }
 
+.clip-dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .clip-dialog .clip-player {
   max-height: 85vh;
 }

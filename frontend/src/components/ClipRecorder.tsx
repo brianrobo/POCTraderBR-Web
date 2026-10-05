@@ -27,8 +27,31 @@ function clamp01(n: number): number {
   return Math.min(1, Math.max(0, n))
 }
 
-export function ClipPlayer({ url }: { url: string }) {
-  return <video className="clip-player" src={url} controls preload="metadata" />
+export function ClipPlayer({ url, autoPlay = false }: { url: string; autoPlay?: boolean }) {
+  return (
+    <video
+      className="clip-player"
+      src={url}
+      controls
+      preload="metadata"
+      onLoadedMetadata={(e) => {
+        const v = e.currentTarget
+        const start = () => {
+          if (autoPlay) void v.play().catch(() => undefined)
+        }
+        if (v.duration !== Infinity) {
+          start()
+          return
+        }
+        v.ontimeupdate = () => {
+          v.ontimeupdate = null
+          v.currentTime = 0
+          start()
+        }
+        v.currentTime = 1e101
+      }}
+    />
+  )
 }
 
 interface Props {

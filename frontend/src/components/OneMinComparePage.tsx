@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type InsightEntry, type LeadingSpan2, type MaSpacing, type OneMinNote, type PeriodSymmetry } from '../api/client'
 import { ChartComparisonImages } from './AnnotatedChart'
+import { ClipPlayer } from './ClipRecorder'
 
 const COLUMNS: { key: 'pass' | 'fail'; label: string }[] = [
   { key: 'pass', label: '성공(PASS)' },
@@ -126,20 +127,20 @@ export function OneMinComparePage() {
   const [notes, setNotes] = useState<OneMinNote[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState<string>(() => localStorage.getItem(MONTH_KEY) ?? 'all')
-  const [clipUrl, setClipUrl] = useState<string | null>(null)
+  const [clipEntry, setClipEntry] = useState<InsightEntry | null>(null)
 
   useEffect(() => {
     localStorage.setItem(MONTH_KEY, selectedMonth)
   }, [selectedMonth])
 
   useEffect(() => {
-    if (!clipUrl) return
+    if (!clipEntry) return
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape') setClipUrl(null)
+      if (ev.key === 'Escape') setClipEntry(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [clipUrl])
+  }, [clipEntry])
 
   const refresh = () => api.listInsights().then(setEntries)
 
@@ -208,16 +209,24 @@ export function OneMinComparePage() {
 
   return (
     <div className="one-min-wrap">
-      {clipUrl && (
-        <div className="clip-dialog-backdrop" onClick={() => setClipUrl(null)}>
+      {clipEntry?.clip_url && (
+        <div className="clip-dialog-backdrop" onClick={() => setClipEntry(null)}>
           <div className="clip-dialog" onClick={(ev) => ev.stopPropagation()}>
             <div className="clip-dialog-head">
-              <span>흐름 클립</span>
-              <button type="button" onClick={() => setClipUrl(null)}>
+              <span className="clip-dialog-title">
+                {clipEntry.result && (
+                  <span className={`insight-result-badge ${clipEntry.result}`}>{clipEntry.result.toUpperCase()}</span>
+                )}
+                {clipEntry.item_name}
+              </span>
+              <button type="button" onClick={() => setClipEntry(null)}>
                 ✕
               </button>
             </div>
-            <video className="clip-player" src={clipUrl} controls autoPlay />
+            {clipEntry.content_html && (
+              <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: clipEntry.content_html }} />
+            )}
+            <ClipPlayer url={clipEntry.clip_url} autoPlay />
           </div>
         </div>
       )}
@@ -267,7 +276,7 @@ export function OneMinComparePage() {
                       <div className="one-min-card-head">
                         <span className="one-min-card-title">{e.item_name}</span>
                         {e.clip_url && (
-                          <button type="button" className="one-min-clip-btn" onClick={() => setClipUrl(e.clip_url)}>
+                          <button type="button" className="one-min-clip-btn" onClick={() => setClipEntry(e)}>
                             ▶ 흐름 클립 보기
                           </button>
                         )}
