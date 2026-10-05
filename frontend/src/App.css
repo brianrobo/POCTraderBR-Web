@@ -457,8 +457,10 @@ button.page-tab-add.insight {
 }
 
 .insight-clip-title {
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: 800;
+  font-size: 15px;
+  color: #ff4fa3;
+  text-shadow: 0 0 8px rgba(255, 45, 149, 0.5);
 }
 
 .clip-error {
@@ -471,6 +473,55 @@ button.page-tab-add.insight {
   max-height: 360px;
   background: #000;
   border-radius: 4px;
+}
+
+.one-min-clip-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: #ff2d95;
+  border: 1px solid #ff7ab8;
+  color: #fff;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(255, 45, 149, 0.6);
+}
+
+.one-min-clip-btn:hover {
+  background: #ff5cae;
+}
+
+.clip-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.clip-dialog {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  width: min(1600px, 96vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.clip-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.clip-dialog .clip-player {
+  max-height: 85vh;
 }
 
 .clip-overlay.picking {

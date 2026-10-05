@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type InsightEntry, type LeadingSpan2, type MaSpacing, type OneMinNote, type PeriodSymmetry } from '../api/client'
 import { ChartComparisonImages } from './AnnotatedChart'
-import { ClipPlayer } from './ClipRecorder'
 
 const COLUMNS: { key: 'pass' | 'fail'; label: string }[] = [
   { key: 'pass', label: '성공(PASS)' },
@@ -127,10 +126,20 @@ export function OneMinComparePage() {
   const [notes, setNotes] = useState<OneMinNote[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState<string>(() => localStorage.getItem(MONTH_KEY) ?? 'all')
+  const [clipUrl, setClipUrl] = useState<string | null>(null)
 
   useEffect(() => {
     localStorage.setItem(MONTH_KEY, selectedMonth)
   }, [selectedMonth])
+
+  useEffect(() => {
+    if (!clipUrl) return
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') setClipUrl(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [clipUrl])
 
   const refresh = () => api.listInsights().then(setEntries)
 
@@ -199,6 +208,19 @@ export function OneMinComparePage() {
 
   return (
     <div className="one-min-wrap">
+      {clipUrl && (
+        <div className="clip-dialog-backdrop" onClick={() => setClipUrl(null)}>
+          <div className="clip-dialog" onClick={(ev) => ev.stopPropagation()}>
+            <div className="clip-dialog-head">
+              <span>흐름 클립</span>
+              <button type="button" onClick={() => setClipUrl(null)}>
+                ✕
+              </button>
+            </div>
+            <video className="clip-player" src={clipUrl} controls autoPlay />
+          </div>
+        </div>
+      )}
       <div className="one-min-stats-bar">
         <div className="one-min-stats-head">
           <h2 className="remind-heading">체크리스트 통계</h2>
@@ -244,6 +266,11 @@ export function OneMinComparePage() {
                     <div key={e.page_id} className="one-min-card">
                       <div className="one-min-card-head">
                         <span className="one-min-card-title">{e.item_name}</span>
+                        {e.clip_url && (
+                          <button type="button" className="one-min-clip-btn" onClick={() => setClipUrl(e.clip_url)}>
+                            ▶ 흐름 클립 보기
+                          </button>
+                        )}
                       </div>
                       {e.content_html && (
                         <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: e.content_html }} />
@@ -253,7 +280,6 @@ export function OneMinComparePage() {
                       ) : (
                         <div className="empty-state">첨부된 화면이 없습니다.</div>
                       )}
-                      {e.clip_url && <ClipPlayer url={e.clip_url} />}
                       <div className="insight-checklist">
                         <span className="insight-checklist-item">
                           <span className="insight-checklist-label">기간대칭</span>
