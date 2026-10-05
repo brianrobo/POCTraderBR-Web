@@ -89,6 +89,7 @@ export interface Page {
   stock_name_a2: string
   stock_name_b: string
   stock_name_b2: string
+  clip_url: string | null
 }
 
 export const ROOT_CATEGORY_ID = '__ROOT__'
@@ -119,6 +120,7 @@ export interface InsightEntry {
   period_symmetry: PeriodSymmetry
   accumulation_checked: boolean
   leading_span2: LeadingSpan2
+  clip_url: string | null
 }
 
 export interface OneMinNote {
@@ -239,6 +241,12 @@ export const api = {
   },
   deleteImage: (pageId: string, slot: ImageSlotKey) =>
     request<Page>(`/api/pages/${pageId}/image/${slot}`, { method: 'DELETE' }),
+  uploadClip: (pageId: string, blob: Blob) => {
+    const form = new FormData()
+    form.append('file', blob, 'clip.webm')
+    return request<Page>(`/api/pages/${pageId}/clip`, { method: 'POST', body: form })
+  },
+  deleteClip: (pageId: string) => request<Page>(`/api/pages/${pageId}/clip`, { method: 'DELETE' }),
   updateStrokes: (pageId: string, slot: ImageSlotKey, strokes: Stroke[]) =>
     request<Page>(`/api/pages/${pageId}/strokes/${slot}`, { method: 'PUT', body: JSON.stringify({ strokes }) }),
 

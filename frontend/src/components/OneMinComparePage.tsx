@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type InsightEntry, type LeadingSpan2, type MaSpacing, type OneMinNote, type PeriodSymmetry } from '../api/client'
 import { ChartComparisonImages } from './AnnotatedChart'
+import { ClipPlayer } from './ClipRecorder'
 
 const COLUMNS: { key: 'pass' | 'fail'; label: string }[] = [
   { key: 'pass', label: '성공(PASS)' },
@@ -252,6 +253,7 @@ export function OneMinComparePage() {
                       ) : (
                         <div className="empty-state">첨부된 화면이 없습니다.</div>
                       )}
+                      {e.clip_url && <ClipPlayer url={e.clip_url} />}
                       <div className="insight-checklist">
                         <span className="insight-checklist-item">
                           <span className="insight-checklist-label">기간대칭</span>

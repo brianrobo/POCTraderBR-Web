@@ -442,6 +442,134 @@ button.page-tab-add.insight {
   margin-top: 6px;
 }
 
+.insight-clip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.insight-clip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.insight-clip-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.clip-error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.clip-player {
+  width: 100%;
+  max-height: 360px;
+  background: #000;
+  border-radius: 4px;
+}
+
+.clip-overlay.picking {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.clip-overlay.recording,
+.clip-overlay.saving {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.clip-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  width: min(1100px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clip-hint {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.clip-stage {
+  position: relative;
+  width: 100%;
+  line-height: 0;
+  cursor: crosshair;
+  user-select: none;
+  touch-action: none;
+}
+
+.clip-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #000;
+}
+
+.clip-sel {
+  position: absolute;
+  border: 2px dashed #ffd24d;
+  background: rgba(255, 210, 77, 0.12);
+  pointer-events: none;
+}
+
+.clip-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.clip-rec-pill {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1d26;
+  color: #fff;
+  border: 1px solid #ff3c3c;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clip-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3c3c;
+  animation: clip-blink 1s steps(2, start) infinite;
+}
+
+@keyframes clip-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
 .insight-card-images > * {
   flex: 1 1 280px;
   min-width: 0;

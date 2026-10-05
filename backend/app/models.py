@@ -70,6 +70,7 @@ class Page(BaseModel):
     stock_name_a2: str = ""
     stock_name_b: str = ""
     stock_name_b2: str = ""
+    clip_url: Optional[str] = None
 
 
 class InsightEntry(BaseModel):
@@ -89,6 +90,7 @@ class InsightEntry(BaseModel):
     period_symmetry: Literal["", "after", "before"] = ""
     accumulation_checked: bool = False
     leading_span2: Literal["", "digested", "undigested"] = ""
+    clip_url: Optional[str] = None
 
 
 class Item(BaseModel):

@@ -15,6 +15,7 @@ from ..paths import ASSETS_DIR
 router = APIRouter(prefix="/api/pages", tags=["assets"])
 
 ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
+ALLOWED_CLIP_EXT = {".webm", ".mp4"}
 
 
 @router.post("/{page_id}/image/{slot}", response_model=Page)
@@ -47,6 +48,52 @@ async def upload_image(
 
     setattr(row, path_attr, rel_path)
     setattr(row, SLOT_STROKES_ATTR[slot], "[]")
+    row.updated_at = now()
+    session.commit()
+    session.refresh(row)
+
+    if old_path:
+        (ASSETS_DIR / old_path).unlink(missing_ok=True)
+
+    return page_to_api(row)
+
+
+@router.post("/{page_id}/clip", response_model=Page)
+async def upload_clip(page_id: str, file: UploadFile = File(...), session: Session = Depends(get_session)) -> Page:
+    ext = Path(file.filename or "clip.webm").suffix.lower() or ".webm"
+    if ext not in ALLOWED_CLIP_EXT:
+        raise HTTPException(400, f"unsupported clip type: {ext}")
+    content = await file.read()
+
+    row = session.get(PageORM, page_id)
+    if not row:
+        raise HTTPException(404, "page not found")
+
+    old_path = row.clip_path
+    item_dir = ASSETS_DIR / row.item_id
+    item_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{page_id}_clip_{int(time.time() * 1000)}{ext}"
+    (item_dir / filename).write_bytes(content)
+
+    row.clip_path = f"{row.item_id}/{filename}"
+    row.updated_at = now()
+    session.commit()
+    session.refresh(row)
+
+    if old_path:
+        (ASSETS_DIR / old_path).unlink(missing_ok=True)
+
+    return page_to_api(row)
+
+
+@router.delete("/{page_id}/clip", response_model=Page)
+def delete_clip(page_id: str, session: Session = Depends(get_session)) -> Page:
+    row = session.get(PageORM, page_id)
+    if not row:
+        raise HTTPException(404, "page not found")
+
+    old_path = row.clip_path
+    row.clip_path = None
     row.updated_at = now()
     session.commit()
     session.refresh(row)

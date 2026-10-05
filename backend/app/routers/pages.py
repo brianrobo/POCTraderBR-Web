@@ -91,6 +91,7 @@ def list_insights(session: Session = Depends(get_session)) -> List[InsightEntry]
                 period_symmetry=page.period_symmetry,
                 accumulation_checked=page.accumulation_checked,
                 leading_span2=page.leading_span2,
+                clip_url=page.clip_url,
             )
         )
     return entries

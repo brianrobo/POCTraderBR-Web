@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type InsightEntry, type PageResult } from '../api/client'
 import { ChartComparisonImages } from './AnnotatedChart'
+import { ClipPlayer } from './ClipRecorder'
 
 interface Props {
   onOpen: (itemId: string, pageId: string) => void
@@ -91,6 +92,7 @@ export function InsightFeed({ onOpen }: Props) {
             </div>
             <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: e.content_html }} />
             <ChartComparisonImages imageA={e.image_a} imageB={e.image_b} itemName={e.item_name} />
+            {e.clip_url && <ClipPlayer url={e.clip_url} />}
           </div>
         ))
       )}

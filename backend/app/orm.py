@@ -53,6 +53,7 @@ class PageORM(Base):
     image_b_strokes: Mapped[str] = mapped_column(Text, default="[]")
     image_b2_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     image_b2_strokes: Mapped[str] = mapped_column(Text, default="[]")
+    clip_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     stock_name_a: Mapped[str] = mapped_column(Text, default="")
     stock_name_a2: Mapped[str] = mapped_column(Text, default="")
     stock_name_b: Mapped[str] = mapped_column(Text, default="")

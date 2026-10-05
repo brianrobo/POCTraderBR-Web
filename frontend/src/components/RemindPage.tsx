@@ -90,7 +90,7 @@ const APPROACH_STEPS = [
   {
     before: '',
     key: '정규장 시작 직후(KST 오후 10:30)',
-    after: '에는 바로 매수하지 않는다',
+    after: '에는 미리 매수하지 않는다',
     tone: 'premise',
     tag: '원칙',
     comment: '개장 직후는 방향이 정해지지 않은 변동성 구간이다. 가설을 세우고 검증한 뒤에만 진입한다.',
@@ -173,6 +173,24 @@ const APPROACH_STEPS = [
         ),
       },
     ],
+  },
+  {
+    before: '',
+    key: 'KST 12:00에는 반드시 마무리!',
+    after: '',
+    tone: 'premise',
+    tag: '원칙',
+    comment: '세력 물량 이탈 이후의 시간대이므로, 이 시간대의 움직임은 판단 근거가 아니다.',
+    detail: {
+      summary: '상세 보기 — 마무리 시간의 의미',
+      lead: '',
+      itemsTitle: '상세 내용',
+      items: [
+        <>
+          세력은 이미 물량을 넘겼으므로, 그 이후 시간이라 볼 필요가 없다
+        </>,
+      ],
+    },
   },
 ]
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, type Item, type Page } from '../api/client'
 import { NoteEditor } from './NoteEditor'
 import { ChartCanvas } from './ChartCanvas'
+import { ClipRecorder } from './ClipRecorder'
 
 interface Props {
   item: Item
@@ -222,6 +223,12 @@ export function PageView({ item, jumpToPageId }: Props) {
                 onPageUpdate={updatePage}
               />
             </div>
+            <ClipRecorder
+              key={`${selectedPage.id}-clip`}
+              pageId={selectedPage.id}
+              clipUrl={selectedPage.clip_url}
+              onChange={updatePage}
+            />
           </div>
         ) : (
           <div className="page-body">
