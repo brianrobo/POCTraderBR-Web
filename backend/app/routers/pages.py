@@ -26,6 +26,7 @@ class PageUpdate(BaseModel):
     period_symmetry: Optional[Literal["", "after", "before"]] = None
     accumulation_checked: Optional[bool] = None
     leading_span2: Optional[Literal["", "digested", "undigested"]] = None
+    do_not_buy: Optional[bool] = None
     note_html_a: Optional[str] = None
     note_html_b: Optional[str] = None
     layout: Optional[str] = None
@@ -92,6 +93,7 @@ def list_insights(session: Session = Depends(get_session)) -> List[InsightEntry]
                 accumulation_checked=page.accumulation_checked,
                 leading_span2=page.leading_span2,
                 clip_url=page.clip_url,
+                do_not_buy=page.do_not_buy,
             )
         )
     return entries
@@ -140,6 +142,8 @@ def update_page(page_id: str, payload: PageUpdate, session: Session = Depends(ge
         row.accumulation_checked = payload.accumulation_checked
     if payload.leading_span2 is not None:
         row.leading_span2 = payload.leading_span2
+    if payload.do_not_buy is not None:
+        row.do_not_buy = payload.do_not_buy
     if payload.note_html_a is not None:
         row.note_html_a = payload.note_html_a
     if payload.note_html_b is not None:

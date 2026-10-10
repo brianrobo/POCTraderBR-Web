@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type InsightEntry, type LeadingSpan2, type MaSpacing, type OneMinNote, type PeriodSymmetry } from '../api/client'
 import { ChartComparisonImages } from './AnnotatedChart'
-import { ClipPlayer } from './ClipRecorder'
+import { ClipDialog } from './ClipRecorder'
 
 const COLUMNS: { key: 'pass' | 'fail'; label: string }[] = [
   { key: 'pass', label: '성공(PASS)' },
@@ -133,15 +133,6 @@ export function OneMinComparePage() {
     localStorage.setItem(MONTH_KEY, selectedMonth)
   }, [selectedMonth])
 
-  useEffect(() => {
-    if (!clipEntry) return
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape') setClipEntry(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [clipEntry])
-
   const refresh = () => api.listInsights().then(setEntries)
 
   useEffect(() => {
@@ -209,27 +200,7 @@ export function OneMinComparePage() {
 
   return (
     <div className="one-min-wrap">
-      {clipEntry?.clip_url && (
-        <div className="clip-dialog-backdrop" onClick={() => setClipEntry(null)}>
-          <div className="clip-dialog" onClick={(ev) => ev.stopPropagation()}>
-            <div className="clip-dialog-head">
-              <span className="clip-dialog-title">
-                {clipEntry.result && (
-                  <span className={`insight-result-badge ${clipEntry.result}`}>{clipEntry.result.toUpperCase()}</span>
-                )}
-                {clipEntry.item_name}
-              </span>
-              <button type="button" onClick={() => setClipEntry(null)}>
-                ✕
-              </button>
-            </div>
-            {clipEntry.content_html && (
-              <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: clipEntry.content_html }} />
-            )}
-            <ClipPlayer url={clipEntry.clip_url} autoPlay />
-          </div>
-        </div>
-      )}
+      <ClipDialog entry={clipEntry} onClose={() => setClipEntry(null)} />
       <div className="one-min-stats-bar">
         <div className="one-min-stats-head">
           <h2 className="remind-heading">체크리스트 통계</h2>

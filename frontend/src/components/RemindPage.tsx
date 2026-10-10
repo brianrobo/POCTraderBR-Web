@@ -21,7 +21,8 @@ interface Mantra {
 const MANTRAS: Mantra[] = [
   {
     title: '무한 행동력',
-    detail: '오직 행동만이 인생을 바꿀 수 있다 / 움직이는 바보가 멈춘 천재 이긴다',
+    detail:
+      '오직 행동만이 인생을 바꿀 수 있다 / 움직이는 바보가 멈춘 천재 이긴다 / 중요한건 빨리가거나 느리게가거나 멈추지 않는것 / 포기하는순간 게임끝난거다(슬램덩크)',
     extras: [
       {
         link: 'https://www.instagram.com/p/DdyAX3Ak0HS/?img_index=10&stkn=MXA2bWkzMXcxdnVzMQ==',
@@ -83,6 +84,10 @@ const MANTRAS: Mantra[] = [
         ],
       },
     ],
+  },
+  {
+    title: '배움',
+    detail: '실패하더라도 배우는게 있으면 OK. 배움이 없는 실패는 비용만 낭비',
   },
 ]
 
@@ -213,6 +218,25 @@ const NO_TRADE_CHARTS = [
   },
 ]
 
+const DISTANCE_SYMMETRY_CHARTS: typeof NO_TRADE_CHARTS = [
+  {
+    itemId: '86c0cd44-57c6-46ca-9ede-518942b1274a',
+    pageId: '2c955730-cee3-4e12-ada7-b8535a66791d',
+    date: '(26.09.29)',
+    name: '메이슨글로리 MSGY',
+    timeframe: '1분봉',
+    note: '',
+  },
+  {
+    itemId: 'cd7c8d11-eefc-4e91-82aa-46fe7061f9bc',
+    pageId: '4cf01bb5-3b7e-465a-a963-3d905ee81588',
+    date: '(26.10.05)',
+    name: '아피메즈 파머슈티컬스US APUS',
+    timeframe: '1분봉',
+    note: '',
+  },
+]
+
 interface Props {
   onOpenPage: (itemId: string, pageId: string) => void
 }
@@ -231,7 +255,7 @@ export function RemindPage({ onOpenPage }: Props) {
     api.getRemindNote().then(setNote)
     api.listRemindVideos().then(setVideos)
     loadFolder()
-    NO_TRADE_CHARTS.forEach((ch) => {
+    ;[...NO_TRADE_CHARTS, ...DISTANCE_SYMMETRY_CHARTS].forEach((ch) => {
       api
         .getPage(ch.pageId)
         .then((p) => setChartPages((prev) => ({ ...prev, [ch.pageId]: p })))
@@ -441,7 +465,7 @@ export function RemindPage({ onOpenPage }: Props) {
           <h2 className="remind-heading danger">절대 바로 매매하면 안 되는 차트</h2>
           {NO_TRADE_CHARTS.map((ch) => {
             const page = chartPages[ch.pageId]
-            const img = page?.image_b
+            const img = page?.image_b ?? page?.image_a
             return (
               <div key={ch.pageId} className="remind-chart-card">
                 <div className="remind-chart-head">
@@ -473,6 +497,53 @@ export function RemindPage({ onOpenPage }: Props) {
               </div>
             )
           })}
+        </section>
+
+        <section className="remind-charts">
+          <h2 className="remind-heading">거리/기간 대칭 확인 시</h2>
+          <div className="remind-section-desc">
+            물량 넘기는 최종 구간에서 거리/시간만큼 대칭해야한다. 아피메즈는 두번째 물량넘긴 위치서부터.
+          </div>
+          {DISTANCE_SYMMETRY_CHARTS.length === 0 ? (
+            <div className="remind-video-empty">아직 등록된 차트가 없습니다.</div>
+          ) : (
+            DISTANCE_SYMMETRY_CHARTS.map((ch) => {
+              const page = chartPages[ch.pageId]
+              const img = page?.image_b ?? page?.image_a
+              return (
+                <div key={ch.pageId} className="remind-chart-card">
+                  <div className="remind-chart-head">
+                    <span className="remind-chart-title">
+                      {ch.date} {ch.name}
+                    </span>
+                    {page?.result && (
+                      <span className={`insight-result-badge ${page.result}`}>{page.result.toUpperCase()}</span>
+                    )}
+                    <span className="remind-chart-tf">{ch.timeframe}</span>
+                    <button
+                      type="button"
+                      className="remind-chart-open"
+                      onClick={() => onOpenPage(ch.itemId, ch.pageId)}
+                    >
+                      원본 보기
+                    </button>
+                  </div>
+                  {img ? (
+                    <AnnotatedChart
+                      src={uploadUrl(img.path)}
+                      strokes={img.strokes}
+                      alt={`${ch.name} ${ch.timeframe}`}
+                    />
+                  ) : page === null ? (
+                    <div className="remind-video-empty">원본 차트를 찾을 수 없습니다.</div>
+                  ) : (
+                    <div className="remind-video-empty">불러오는 중...</div>
+                  )}
+                  {ch.note && <div className="remind-chart-note">{ch.note}</div>}
+                </div>
+              )
+            })
+          )}
         </section>
 
         <section className="remind-video-col">

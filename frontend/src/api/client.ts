@@ -90,6 +90,7 @@ export interface Page {
   stock_name_b: string
   stock_name_b2: string
   clip_url: string | null
+  do_not_buy: boolean
 }
 
 export const ROOT_CATEGORY_ID = '__ROOT__'
@@ -121,6 +122,7 @@ export interface InsightEntry {
   accumulation_checked: boolean
   leading_span2: LeadingSpan2
   clip_url: string | null
+  do_not_buy: boolean
 }
 
 export interface OneMinNote {
@@ -225,6 +227,8 @@ export const api = {
       leading_span2?: LeadingSpan2
     },
   ) => request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  updatePageDoNotBuy: (id: string, do_not_buy: boolean) =>
+    request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ do_not_buy }) }),
   updatePageLayout: (id: string, layout: PageLayout) =>
     request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ layout }) }),
   updateStockName: (id: string, slot: ImageSlotKey, name: string) =>

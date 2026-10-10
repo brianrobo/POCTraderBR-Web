@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, type Page } from '../api/client'
+import { api, type InsightEntry, type Page } from '../api/client'
 
 const MAX_SECONDS = 30
 const FPS = 30
@@ -51,6 +51,38 @@ export function ClipPlayer({ url, autoPlay = false }: { url: string; autoPlay?: 
         v.currentTime = 1e101
       }}
     />
+  )
+}
+
+export function ClipDialog({ entry, onClose }: { entry: InsightEntry | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!entry) return
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [entry, onClose])
+
+  if (!entry?.clip_url) return null
+  return (
+    <div className="clip-dialog-backdrop" onClick={onClose}>
+      <div className="clip-dialog" onClick={(ev) => ev.stopPropagation()}>
+        <div className="clip-dialog-head">
+          <span className="clip-dialog-title">
+            {entry.result && <span className={`insight-result-badge ${entry.result}`}>{entry.result.toUpperCase()}</span>}
+            {entry.item_name}
+          </span>
+          <button type="button" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        {entry.content_html && (
+          <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: entry.content_html }} />
+        )}
+        <ClipPlayer url={entry.clip_url} autoPlay />
+      </div>
+    </div>
   )
 }
 

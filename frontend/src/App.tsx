@@ -12,6 +12,7 @@ import { InsightFeed } from './components/InsightFeed'
 import { LiveAnalysisPage } from './components/LiveAnalysisPage'
 import { RemindPage } from './components/RemindPage'
 import { OneMinComparePage } from './components/OneMinComparePage'
+import { DoNotBuyPage } from './components/DoNotBuyPage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -21,10 +22,10 @@ const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
-type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind' | 'onemin'
+type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind' | 'onemin' | 'donotbuy'
 type Selection = { type: 'item' | 'category'; id: string } | null
 
-const KNOWN_TABS: Tab[] = ['notes', 'reference', 'study', 'insights', 'live', 'remind', 'onemin']
+const KNOWN_TABS: Tab[] = ['notes', 'reference', 'study', 'insights', 'live', 'remind', 'onemin', 'donotbuy']
 
 function loadActiveTab(): Tab {
   const raw = localStorage.getItem(ACTIVE_TAB_KEY)
@@ -184,6 +185,13 @@ export default function App() {
         >
           1분봉 비교
         </button>
+        <button
+          type="button"
+          className={activeTab === 'donotbuy' ? 'active' : ''}
+          onClick={() => setActiveTab('donotbuy')}
+        >
+          Remind(사면안되는 종목)
+        </button>
       </div>
       {activeTab === 'notes' ? (
         <div className="app-layout">
@@ -227,8 +235,10 @@ export default function App() {
         <LiveAnalysisPage />
       ) : activeTab === 'remind' ? (
         <RemindPage onOpenPage={openInsight} />
-      ) : (
+      ) : activeTab === 'onemin' ? (
         <OneMinComparePage />
+      ) : (
+        <DoNotBuyPage onOpenPage={openInsight} />
       )}
     </div>
   )

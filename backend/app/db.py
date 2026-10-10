@@ -50,6 +50,7 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("pages", "image_b2_path", "ALTER TABLE pages ADD COLUMN image_b2_path TEXT"),
     ("pages", "image_b2_strokes", "ALTER TABLE pages ADD COLUMN image_b2_strokes TEXT DEFAULT '[]'"),
     ("pages", "clip_path", "ALTER TABLE pages ADD COLUMN clip_path TEXT"),
+    ("pages", "do_not_buy", "ALTER TABLE pages ADD COLUMN do_not_buy BOOLEAN DEFAULT 0"),
     ("pages", "stock_name_a2", "ALTER TABLE pages ADD COLUMN stock_name_a2 TEXT DEFAULT ''"),
     ("pages", "stock_name_b2", "ALTER TABLE pages ADD COLUMN stock_name_b2 TEXT DEFAULT ''"),
     ("pages", "note_html_b", "ALTER TABLE pages ADD COLUMN note_html_b TEXT DEFAULT ''"),

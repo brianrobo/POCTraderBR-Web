@@ -71,6 +71,7 @@ class Page(BaseModel):
     stock_name_b: str = ""
     stock_name_b2: str = ""
     clip_url: Optional[str] = None
+    do_not_buy: bool = False
 
 
 class InsightEntry(BaseModel):
@@ -91,6 +92,7 @@ class InsightEntry(BaseModel):
     accumulation_checked: bool = False
     leading_span2: Literal["", "digested", "undigested"] = ""
     clip_url: Optional[str] = None
+    do_not_buy: bool = False
 
 
 class Item(BaseModel):

@@ -72,6 +72,10 @@ export function PageView({ item, jumpToPageId }: Props) {
     updatePage(await api.updatePageChecklist(page.id, { accumulation_checked: !page.accumulation_checked }))
   }
 
+  const toggleDoNotBuy = async (page: Page) => {
+    updatePage(await api.updatePageDoNotBuy(page.id, !page.do_not_buy))
+  }
+
   const setLayout = async (id: string, layout: '2' | '4') => {
     try {
       const updated = await api.updatePageLayout(id, layout)
@@ -141,6 +145,13 @@ export function PageView({ item, jumpToPageId }: Props) {
                 FAIL
               </button>
               {!selectedPage.result && <span className="insight-result-hint">아직 미정</span>}
+              <button
+                type="button"
+                className={`do-not-buy-toggle ${selectedPage.do_not_buy ? 'active' : ''}`}
+                onClick={() => toggleDoNotBuy(selectedPage)}
+              >
+                🚫 사면 안되는 종목
+              </button>
             </div>
             <div className="insight-checklist">
               <span className="insight-checklist-item">

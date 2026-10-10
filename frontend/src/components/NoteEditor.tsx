@@ -56,6 +56,13 @@ export function NoteEditor({ html, onSave }: Props) {
         >
           I
         </button>
+        <button
+          type="button"
+          className={`swatch swatch-default ${!editor.getAttributes('textStyle').color ? 'active' : ''}`}
+          onClick={() => editor.chain().focus().unsetColor().run()}
+        >
+          기본
+        </button>
         {NOTE_COLORS.map((c) => (
           <button
             key={c}

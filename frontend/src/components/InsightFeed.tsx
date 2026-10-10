@@ -91,8 +91,10 @@ export function InsightFeed({ onOpen }: Props) {
               <span className="insight-card-date">{formatDate(e.updated_at)}</span>
             </div>
             <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: e.content_html }} />
-            <ChartComparisonImages imageA={e.image_a} imageB={e.image_b} itemName={e.item_name} />
-            {e.clip_url && <ClipPlayer url={e.clip_url} />}
+            <div className="insight-feed-chart">
+              <ChartComparisonImages imageA={e.image_a} imageB={e.image_b} itemName={e.item_name} />
+              {e.clip_url && <ClipPlayer url={e.clip_url} />}
+            </div>
           </div>
         ))
       )}
