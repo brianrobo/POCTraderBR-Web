@@ -200,7 +200,13 @@ export function OneMinComparePage() {
 
   return (
     <div className="one-min-wrap">
-      <ClipDialog entry={clipEntry} onClose={() => setClipEntry(null)} />
+      <ClipDialog
+        url={clipEntry?.clip_url ?? null}
+        title={clipEntry?.item_name}
+        result={clipEntry?.result}
+        contentHtml={clipEntry?.content_html}
+        onClose={() => setClipEntry(null)}
+      />
       <div className="one-min-stats-bar">
         <div className="one-min-stats-head">
           <h2 className="remind-heading">체크리스트 통계</h2>

@@ -72,7 +72,13 @@ export function DoNotBuyPage({ onOpenPage }: Props) {
 
   return (
     <div className="donotbuy-wrap">
-      <ClipDialog entry={clipEntry} onClose={() => setClipEntry(null)} />
+      <ClipDialog
+        url={clipEntry?.clip_url ?? null}
+        title={clipEntry?.item_name}
+        result={clipEntry?.result}
+        contentHtml={clipEntry?.content_html}
+        onClose={() => setClipEntry(null)}
+      />
       <div className="donotbuy-head">
         <h2 className="remind-heading danger">사면 안되는 종목</h2>
         <label className="donotbuy-size-label">

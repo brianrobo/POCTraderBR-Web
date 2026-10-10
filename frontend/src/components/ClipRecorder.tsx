@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, type InsightEntry, type Page } from '../api/client'
+import { api, type Page, type PageResult } from '../api/client'
 
 const MAX_SECONDS = 30
 const FPS = 30
@@ -54,33 +54,39 @@ export function ClipPlayer({ url, autoPlay = false }: { url: string; autoPlay?: 
   )
 }
 
-export function ClipDialog({ entry, onClose }: { entry: InsightEntry | null; onClose: () => void }) {
+interface ClipDialogProps {
+  url: string | null
+  title?: string
+  result?: PageResult
+  contentHtml?: string
+  onClose: () => void
+}
+
+export function ClipDialog({ url, title, result, contentHtml, onClose }: ClipDialogProps) {
   useEffect(() => {
-    if (!entry) return
+    if (!url) return
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [entry, onClose])
+  }, [url, onClose])
 
-  if (!entry?.clip_url) return null
+  if (!url) return null
   return (
     <div className="clip-dialog-backdrop" onClick={onClose}>
       <div className="clip-dialog" onClick={(ev) => ev.stopPropagation()}>
         <div className="clip-dialog-head">
           <span className="clip-dialog-title">
-            {entry.result && <span className={`insight-result-badge ${entry.result}`}>{entry.result.toUpperCase()}</span>}
-            {entry.item_name}
+            {result && <span className={`insight-result-badge ${result}`}>{result.toUpperCase()}</span>}
+            {title}
           </span>
           <button type="button" onClick={onClose}>
             ✕
           </button>
         </div>
-        {entry.content_html && (
-          <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: entry.content_html }} />
-        )}
-        <ClipPlayer url={entry.clip_url} autoPlay />
+        {contentHtml && <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: contentHtml }} />}
+        <ClipPlayer url={url} autoPlay />
       </div>
     </div>
   )
@@ -90,13 +96,15 @@ interface Props {
   pageId: string
   clipUrl: string | null
   onChange: (page: Page) => void
+  itemName?: string
 }
 
-export function ClipRecorder({ pageId, clipUrl, onChange }: Props) {
+export function ClipRecorder({ pageId, clipUrl, onChange, itemName }: Props) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState<string | null>(null)
   const [elapsed, setElapsed] = useState(0)
   const [sel, setSel] = useState<Selection | null>(null)
+  const [showDialog, setShowDialog] = useState(false)
 
   const streamRef = useRef<MediaStream | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -286,7 +294,12 @@ export function ClipRecorder({ pageId, clipUrl, onChange }: Props) {
         {error && <span className="clip-error">{error}</span>}
       </div>
 
-      {phase === 'idle' && clipUrl && <ClipPlayer url={clipUrl} />}
+      {phase === 'idle' && clipUrl && (
+        <button type="button" className="one-min-clip-btn" onClick={() => setShowDialog(true)}>
+          ▶ 흐름 클립 보기
+        </button>
+      )}
+      {showDialog && <ClipDialog url={clipUrl} title={itemName} onClose={() => setShowDialog(false)} />}
 
       {phase !== 'idle' && (
         <div className={`clip-overlay ${phase}`}>

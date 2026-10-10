@@ -239,6 +239,7 @@ export function PageView({ item, jumpToPageId }: Props) {
               pageId={selectedPage.id}
               clipUrl={selectedPage.clip_url}
               onChange={updatePage}
+              itemName={item.name}
             />
           </div>
         ) : (
