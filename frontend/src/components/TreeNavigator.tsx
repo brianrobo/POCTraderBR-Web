@@ -11,6 +11,18 @@ function todayPrefix(): string {
   return `(${yy}.${mm}.${dd})`
 }
 
+// Items are named "(YY.MM.DD) ...", so the tree can show them newest-first
+// by date instead of insertion order. Items without that prefix sort last,
+// keeping their relative order (stable sort).
+function dateKey(name: string): number {
+  const m = /^\((\d{2})\.(\d{2})\.(\d{2})\)/.exec(name)
+  return m ? Number(m[1]) * 10000 + Number(m[2]) * 100 + Number(m[3]) : -Infinity
+}
+
+function sortItemIdsByDate(ids: string[], itemById: Map<string, Item>): string[] {
+  return [...ids].sort((a, b) => dateKey(itemById.get(b)?.name ?? '') - dateKey(itemById.get(a)?.name ?? ''))
+}
+
 function loadExpanded(): Set<string> {
   const raw = localStorage.getItem(EXPANDED_KEY)
   if (raw) {
@@ -255,10 +267,13 @@ export function TreeNavigator({
         {isExpanded && (
           <div className="tree-children">
             {cat.child_ids.map((childId) => renderCategory(childId, depth + 1))}
-            {cat.item_ids.map((itemId, itemIdx) => {
-              const item = itemById.get(itemId)
-              if (!item) return null
-              return (
+            {(() => {
+              const sortedItemIds = sortItemIdsByDate(cat.item_ids, itemById)
+              return sortedItemIds.map((itemId, itemIdx) => {
+                const item = itemById.get(itemId)
+                if (!item) return null
+                const hasDate = dateKey(item.name) !== -Infinity
+                return (
                 <div
                   key={itemId}
                   className={`tree-row tree-item ${selectedItemId === itemId ? 'selected' : ''}`}
@@ -276,26 +291,30 @@ export function TreeNavigator({
                     {item.name}
                   </span>
                   <span className={`tree-actions ${moveMenuFor === itemId ? 'menu-open' : ''}`}>
-                    <button
-                      title="위로 이동"
-                      disabled={itemIdx === 0}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        moveItem(itemId, 'up')
-                      }}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      title="아래로 이동"
-                      disabled={itemIdx === cat.item_ids.length - 1}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        moveItem(itemId, 'down')
-                      }}
-                    >
-                      ▼
-                    </button>
+                    {!hasDate && (
+                      <>
+                        <button
+                          title="위로 이동"
+                          disabled={itemIdx === 0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            moveItem(itemId, 'up')
+                          }}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          title="아래로 이동"
+                          disabled={itemIdx === sortedItemIds.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            moveItem(itemId, 'down')
+                          }}
+                        >
+                          ▼
+                        </button>
+                      </>
+                    )}
                     <span className="folder-picker-wrap">
                       <button
                         title="다른 폴더로 이동"
@@ -332,8 +351,9 @@ export function TreeNavigator({
                     </button>
                   </span>
                 </div>
-              )
-            })}
+                )
+              })
+            })()}
           </div>
         )}
       </div>
