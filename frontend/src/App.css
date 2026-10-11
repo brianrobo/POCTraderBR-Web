@@ -1637,6 +1637,11 @@ button.danger:hover {
   color: var(--danger);
 }
 
+.remind-heading.highlight {
+  color: #ff2d95;
+  text-shadow: 0 0 8px rgba(255, 45, 149, 0.5);
+}
+
 .remind-charts {
   display: flex;
   flex-direction: column;

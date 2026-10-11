@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, type Page, type RemindFolder, type RemindNote, type RemindVideo } from '../api/client'
 import { AnnotatedChart, uploadUrl } from './AnnotatedChart'
 import { NoteEditor } from './NoteEditor'
+import { ClipDialog } from './ClipRecorder'
 
 interface MantraExtra {
   link?: string
@@ -293,6 +294,17 @@ const DISTANCE_SYMMETRY_CHARTS: typeof NO_TRADE_CHARTS = [
   },
 ]
 
+const MONEY_FLOW_CHARTS: typeof NO_TRADE_CHARTS = [
+  {
+    itemId: '5e8cd8d0-8ee4-4e04-8d83-9dbc414c9d31',
+    pageId: '829ee7c6-0921-4a0e-afe2-2220d1aefcec',
+    date: '(26.10.06)',
+    name: '프레이트 테크놀러지 FRGT',
+    timeframe: '1분봉',
+    note: '',
+  },
+]
+
 interface Props {
   onOpenPage: (itemId: string, pageId: string) => void
 }
@@ -303,6 +315,7 @@ export function RemindPage({ onOpenPage }: Props) {
   const [folder, setFolder] = useState<RemindFolder | null>(null)
   const [uploading, setUploading] = useState(false)
   const [chartPages, setChartPages] = useState<Record<string, Page | null>>({})
+  const [clipDialog, setClipDialog] = useState<{ page: Page; label: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadFolder = () => api.getRemindFolder().then(setFolder)
@@ -311,7 +324,7 @@ export function RemindPage({ onOpenPage }: Props) {
     api.getRemindNote().then(setNote)
     api.listRemindVideos().then(setVideos)
     loadFolder()
-    ;[...NO_TRADE_CHARTS, ...DISTANCE_SYMMETRY_CHARTS].forEach((ch) => {
+    ;[...NO_TRADE_CHARTS, ...DISTANCE_SYMMETRY_CHARTS, ...MONEY_FLOW_CHARTS].forEach((ch) => {
       api
         .getPage(ch.pageId)
         .then((p) => setChartPages((prev) => ({ ...prev, [ch.pageId]: p })))
@@ -524,6 +537,13 @@ export function RemindPage({ onOpenPage }: Props) {
       </div>
 
       <div className="remind-right">
+        <ClipDialog
+          url={clipDialog?.page.clip_url ?? null}
+          title={clipDialog?.label}
+          result={clipDialog?.page.result}
+          contentHtml={clipDialog?.page.note_html_a}
+          onClose={() => setClipDialog(null)}
+        />
         <section className="remind-charts">
           <h2 className="remind-heading danger">절대 바로 매매하면 안 되는 차트</h2>
           {NO_TRADE_CHARTS.map((ch) => {
@@ -544,6 +564,15 @@ export function RemindPage({ onOpenPage }: Props) {
                   >
                     원본 보기
                   </button>
+                  {page?.clip_url && (
+                    <button
+                      type="button"
+                      className="one-min-clip-btn"
+                      onClick={() => setClipDialog({ page, label: `${ch.date} ${ch.name}` })}
+                    >
+                      ▶ 흐름 클립 보기
+                    </button>
+                  )}
                 </div>
                 {img ? (
                   <AnnotatedChart
@@ -563,7 +592,7 @@ export function RemindPage({ onOpenPage }: Props) {
         </section>
 
         <section className="remind-charts">
-          <h2 className="remind-heading">거리/기간 대칭 확인 시</h2>
+          <h2 className="remind-heading highlight">거리/기간 대칭 확인 시</h2>
           <div className="remind-section-desc">
             물량 넘기는 최종 구간에서 거리/시간만큼 대칭해야한다. 아피메즈는 두번째 물량넘긴 위치서부터.
           </div>
@@ -590,6 +619,68 @@ export function RemindPage({ onOpenPage }: Props) {
                     >
                       원본 보기
                     </button>
+                    {page?.clip_url && (
+                      <button
+                        type="button"
+                        className="one-min-clip-btn"
+                        onClick={() => setClipDialog({ page, label: `${ch.date} ${ch.name}` })}
+                      >
+                        ▶ 흐름 클립 보기
+                      </button>
+                    )}
+                  </div>
+                  {img ? (
+                    <AnnotatedChart
+                      src={uploadUrl(img.path)}
+                      strokes={img.strokes}
+                      alt={`${ch.name} ${ch.timeframe}`}
+                    />
+                  ) : page === null ? (
+                    <div className="remind-video-empty">원본 차트를 찾을 수 없습니다.</div>
+                  ) : (
+                    <div className="remind-video-empty">불러오는 중...</div>
+                  )}
+                  {ch.note && <div className="remind-chart-note">{ch.note}</div>}
+                </div>
+              )
+            })
+          )}
+        </section>
+
+        <section className="remind-charts">
+          <h2 className="remind-heading highlight">앞에 돈이들어온 구간&매물대와 타점도 돈이 들어오는지를 체크</h2>
+          {MONEY_FLOW_CHARTS.length === 0 ? (
+            <div className="remind-video-empty">아직 등록된 차트가 없습니다.</div>
+          ) : (
+            MONEY_FLOW_CHARTS.map((ch) => {
+              const page = chartPages[ch.pageId]
+              const img = page?.image_b ?? page?.image_a
+              return (
+                <div key={ch.pageId} className="remind-chart-card">
+                  <div className="remind-chart-head">
+                    <span className="remind-chart-title">
+                      {ch.date} {ch.name}
+                    </span>
+                    {page?.result && (
+                      <span className={`insight-result-badge ${page.result}`}>{page.result.toUpperCase()}</span>
+                    )}
+                    <span className="remind-chart-tf">{ch.timeframe}</span>
+                    <button
+                      type="button"
+                      className="remind-chart-open"
+                      onClick={() => onOpenPage(ch.itemId, ch.pageId)}
+                    >
+                      원본 보기
+                    </button>
+                    {page?.clip_url && (
+                      <button
+                        type="button"
+                        className="one-min-clip-btn"
+                        onClick={() => setClipDialog({ page, label: `${ch.date} ${ch.name}` })}
+                      >
+                        ▶ 흐름 클립 보기
+                      </button>
+                    )}
                   </div>
                   {img ? (
                     <AnnotatedChart
