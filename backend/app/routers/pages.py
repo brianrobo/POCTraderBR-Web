@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from typing import List, Literal, Optional
@@ -27,6 +27,7 @@ class PageUpdate(BaseModel):
     accumulation_checked: Optional[bool] = None
     leading_span2: Optional[Literal["", "digested", "undigested"]] = None
     do_not_buy: Optional[bool] = None
+    do_not_buy_category: Optional[Literal["", "volume_passed", "spike_dump", "accumulation_unclear"]] = None
     note_html_a: Optional[str] = None
     note_html_b: Optional[str] = None
     layout: Optional[str] = None
@@ -94,6 +95,7 @@ def list_insights(session: Session = Depends(get_session)) -> List[InsightEntry]
                 leading_span2=page.leading_span2,
                 clip_url=page.clip_url,
                 do_not_buy=page.do_not_buy,
+                do_not_buy_category=page.do_not_buy_category,
             )
         )
     return entries
@@ -144,6 +146,8 @@ def update_page(page_id: str, payload: PageUpdate, session: Session = Depends(ge
         row.leading_span2 = payload.leading_span2
     if payload.do_not_buy is not None:
         row.do_not_buy = payload.do_not_buy
+    if payload.do_not_buy_category is not None:
+        row.do_not_buy_category = payload.do_not_buy_category
     if payload.note_html_a is not None:
         row.note_html_a = payload.note_html_a
     if payload.note_html_b is not None:

@@ -99,6 +99,7 @@ def page_to_api(row: PageORM) -> Page:
         stock_name_b2=row.stock_name_b2,
         clip_url=f"/uploads/{row.clip_path}" if row.clip_path else None,
         do_not_buy=bool(row.do_not_buy),
+        do_not_buy_category=row.do_not_buy_category or "",
     )
 
 

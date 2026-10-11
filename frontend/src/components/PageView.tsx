@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type Item, type Page } from '../api/client'
+import { api, DO_NOT_BUY_CATEGORIES, type DoNotBuyCategory, type Item, type Page } from '../api/client'
 import { NoteEditor } from './NoteEditor'
 import { ChartCanvas } from './ChartCanvas'
 import { ClipRecorder } from './ClipRecorder'
@@ -74,6 +74,10 @@ export function PageView({ item, jumpToPageId }: Props) {
 
   const toggleDoNotBuy = async (page: Page) => {
     updatePage(await api.updatePageDoNotBuy(page.id, !page.do_not_buy))
+  }
+
+  const setDoNotBuyCategory = async (page: Page, category: DoNotBuyCategory) => {
+    updatePage(await api.updatePageDoNotBuyCategory(page.id, category))
   }
 
   const setLayout = async (id: string, layout: '2' | '4') => {
@@ -152,6 +156,20 @@ export function PageView({ item, jumpToPageId }: Props) {
               >
                 🚫 사면 안되는 종목
               </button>
+              {selectedPage.do_not_buy && (
+                <select
+                  className="do-not-buy-category-select"
+                  value={selectedPage.do_not_buy_category}
+                  onChange={(e) => setDoNotBuyCategory(selectedPage, e.target.value as DoNotBuyCategory)}
+                >
+                  <option value="">카테고리 선택</option>
+                  {DO_NOT_BUY_CATEGORIES.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="insight-checklist">
               <span className="insight-checklist-item">

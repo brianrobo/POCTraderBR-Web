@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import time
 import uuid
@@ -72,6 +72,7 @@ class Page(BaseModel):
     stock_name_b2: str = ""
     clip_url: Optional[str] = None
     do_not_buy: bool = False
+    do_not_buy_category: Literal["", "volume_passed", "spike_dump", "accumulation_unclear"] = ""
 
 
 class InsightEntry(BaseModel):
@@ -93,6 +94,7 @@ class InsightEntry(BaseModel):
     leading_span2: Literal["", "digested", "undigested"] = ""
     clip_url: Optional[str] = None
     do_not_buy: bool = False
+    do_not_buy_category: Literal["", "volume_passed", "spike_dump", "accumulation_unclear"] = ""
 
 
 class Item(BaseModel):

@@ -385,6 +385,22 @@ button.page-tab-add.insight {
   color: white;
 }
 
+.do-not-buy-category-select {
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.donotbuy-category-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-right: 6px;
+}
+
 .insight-filter {
   display: flex;
   gap: 6px;
@@ -1787,12 +1803,29 @@ summary.remind-mantra-row::-webkit-details-marker {
   color: var(--text);
 }
 
+.remind-mantra-highlight {
+  color: #ff3c3c;
+  font-weight: 700;
+}
+
 .remind-mantra-image {
   display: block;
   max-width: 280px;
   width: 100%;
   border-radius: 6px;
   margin-top: 4px;
+}
+
+.remind-mantra-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.remind-mantra-images .remind-mantra-image {
+  max-width: 160px;
+  margin-top: 0;
 }
 
 .remind-mantra-section ul {

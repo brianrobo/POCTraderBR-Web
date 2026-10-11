@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, type Page, type RemindFolder, type RemindNote, type RemindVideo } from '../api/client'
 import { AnnotatedChart, uploadUrl } from './AnnotatedChart'
 import { NoteEditor } from './NoteEditor'
@@ -8,8 +8,9 @@ interface MantraExtra {
   points?: string[]
   quote?: string
   paragraphs?: string[]
-  sections?: { heading: string; points: string[] }[]
+  sections?: { heading: string; points: ReactNode[] }[]
   image?: string
+  images?: string[]
 }
 
 interface Mantra {
@@ -54,7 +55,7 @@ const MANTRAS: Mantra[] = [
   },
   {
     title: '극상위권',
-    detail: '단 한 번도 1등을 놓친 적이 없음. 방법을 아니깐',
+    detail: '단 한 번도 1등을 놓친 적이 없음. 방법을 아니깐 / 새벽4시를 모르는자는 위대함도 모른다(코비 브라이언트)',
     extras: [
       {
         link: 'https://youtu.be/OsR8KlXA9aI?si=5hC623HWYl3g7TwE',
@@ -79,6 +80,61 @@ const MANTRAS: Mantra[] = [
             heading: '3. 변화의 방법 (3:59 - 4:22)',
             points: [
               '태도의 변화: 태도와 공부 스타일은 쉽게 바뀌지 않으므로, 단번에 바꾸려 하기보다 서서히 개선해 나가야 한다고 마무리.',
+            ],
+          },
+        ],
+      },
+      {
+        points: ['코비 브라이언트 "새벽 4시" 카드뉴스 요약 (출처: darkmotivations.s)'],
+        images: [
+          '/remind/kobe-4am-01.png',
+          '/remind/kobe-4am-02.png',
+          '/remind/kobe-4am-03.png',
+          '/remind/kobe-4am-04.png',
+          '/remind/kobe-4am-05.png',
+          '/remind/kobe-4am-06.png',
+          '/remind/kobe-4am-07.png',
+          '/remind/kobe-4am-08.png',
+        ],
+        sections: [
+          {
+            heading: '1. 지는 것에 익숙해지지 마라',
+            points: [
+              <span className="remind-mantra-highlight">나는 패배를 받아들이는 법을 배운 적이 없다.</span>,
+              <span className="remind-mantra-highlight">한 번 질 때마다 다음 훈련을 하나 더 넣었을 뿐이다.</span>,
+              '패배에 익숙해지는 순간 성장은 멈춘다.',
+            ],
+          },
+          {
+            heading: '2. 다치면 불안해하지 말고 적응하라',
+            points: ['나는 부상 중에도 왼손으로 슛을 연습했다.', '멈출 이유를 찾는 대신, 지금 바로 할 수 있는 걸 찾아라.'],
+          },
+          {
+            heading: '3. 재능을 변명으로 쓰지 마라',
+            points: [
+              '나는 재능 있는 선수를 두려워한 적이 없다.',
+              <span className="remind-mantra-highlight">나보다 더 많이 훈련하는 선수를 두려워했다.</span>,
+              '재능은 시작점이지 결승점이 아니다.',
+            ],
+          },
+          {
+            heading: '4. 팀보다 먼저 무너지지 마라',
+            points: ['경기가 안 풀릴 때는 표정부터 관리했다.', '한 명이 흔들리면 전체가 흔들린다. 평정심도 훈련하면 키울 수 있다.'],
+          },
+          {
+            heading: '5. 디테일에 집착하라',
+            points: [
+              <span className="remind-mantra-highlight">나는 발끝 각도 하나까지 반복해서 고쳤다.</span>,
+              '큰 성공은 아무도 신경 쓰지 않는 아주 작은 디테일에서 시작된다.',
+            ],
+          },
+          {
+            heading: '6. 새벽 4시에 일어나라',
+            points: [
+              '나는 매일 새벽 4시에 아무도 없는 체육관 문을 열었다.',
+              '아무도 보지 않는 시간에 하는 훈련이 아무도 따라오지 못하는 실력을 만든다.',
+              <span className="remind-mantra-highlight">아무도 보지 않는 새벽은 변명이 아니라 기회다.</span>,
+              '남들이 자는 시간에 일어나는 사람과 그렇지 않은 사람의 차이가 결국 전설을 만드는 것이다.',
             ],
           },
         ],
@@ -338,6 +394,13 @@ export function RemindPage({ onOpenPage }: Props) {
                       </div>
                     ))}
                     {ex.image && <img src={ex.image} alt="" className="remind-mantra-image" />}
+                    {ex.images && (
+                      <div className="remind-mantra-images">
+                        {ex.images.map((src) => (
+                          <img key={src} src={src} alt="" className="remind-mantra-image" />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </details>

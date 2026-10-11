@@ -67,6 +67,13 @@ export type PageResult = '' | 'pass' | 'fail'
 export type MaSpacing = '' | 'converge' | 'diverge'
 export type PeriodSymmetry = '' | 'after' | 'before'
 export type LeadingSpan2 = '' | 'digested' | 'undigested'
+export type DoNotBuyCategory = '' | 'volume_passed' | 'spike_dump' | 'accumulation_unclear'
+
+export const DO_NOT_BUY_CATEGORIES: { key: DoNotBuyCategory; label: string }[] = [
+  { key: 'volume_passed', label: '이미 물량넘기는 구간 & 거래량 이후' },
+  { key: 'spike_dump', label: '겁나올린(70~80%)후 금방 내려버린' },
+  { key: 'accumulation_unclear', label: '매집구간 규명 X' },
+]
 
 export interface Page {
   id: string
@@ -91,6 +98,7 @@ export interface Page {
   stock_name_b2: string
   clip_url: string | null
   do_not_buy: boolean
+  do_not_buy_category: DoNotBuyCategory
 }
 
 export const ROOT_CATEGORY_ID = '__ROOT__'
@@ -123,6 +131,7 @@ export interface InsightEntry {
   leading_span2: LeadingSpan2
   clip_url: string | null
   do_not_buy: boolean
+  do_not_buy_category: DoNotBuyCategory
 }
 
 export interface OneMinNote {
@@ -229,6 +238,8 @@ export const api = {
   ) => request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   updatePageDoNotBuy: (id: string, do_not_buy: boolean) =>
     request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ do_not_buy }) }),
+  updatePageDoNotBuyCategory: (id: string, do_not_buy_category: DoNotBuyCategory) =>
+    request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ do_not_buy_category }) }),
   updatePageLayout: (id: string, layout: PageLayout) =>
     request<Page>(`/api/pages/${id}`, { method: 'PATCH', body: JSON.stringify({ layout }) }),
   updateStockName: (id: string, slot: ImageSlotKey, name: string) =>

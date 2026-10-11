@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { api, type InsightEntry, type LeadingSpan2, type MaSpacing, type PeriodSymmetry } from '../api/client'
+import {
+  api,
+  DO_NOT_BUY_CATEGORIES,
+  type DoNotBuyCategory,
+  type InsightEntry,
+  type LeadingSpan2,
+  type MaSpacing,
+  type PeriodSymmetry,
+} from '../api/client'
 import { ChartComparisonImages } from './AnnotatedChart'
 import { ClipDialog } from './ClipRecorder'
 
@@ -11,6 +19,10 @@ function loadChartSize(): number {
   return (CHART_SIZES as readonly number[]).includes(raw) ? raw : 60
 }
 
+function categoryLabel(category: DoNotBuyCategory): string {
+  return DO_NOT_BUY_CATEGORIES.find((c) => c.key === category)?.label ?? ''
+}
+
 interface Props {
   onOpenPage: (itemId: string, pageId: string) => void
 }
@@ -20,6 +32,7 @@ export function DoNotBuyPage({ onOpenPage }: Props) {
   const [loading, setLoading] = useState(true)
   const [clipEntry, setClipEntry] = useState<InsightEntry | null>(null)
   const [chartSize, setChartSize] = useState<number>(loadChartSize)
+  const [categoryFilter, setCategoryFilter] = useState<DoNotBuyCategory | 'all'>('all')
 
   useEffect(() => {
     localStorage.setItem(CHART_SIZE_KEY, String(chartSize))
@@ -60,6 +73,11 @@ export function DoNotBuyPage({ onOpenPage }: Props) {
     updateEntry(e.page_id, { accumulation_checked: value })
   }
 
+  const setCategory = async (e: InsightEntry, category: DoNotBuyCategory) => {
+    await api.updatePageDoNotBuyCategory(e.page_id, category)
+    updateEntry(e.page_id, { do_not_buy_category: category })
+  }
+
   const removeFromList = async (e: InsightEntry) => {
     if (!window.confirm('이 종목을 목록에서 제거할까요? (인사이트 페이지 자체는 삭제되지 않습니다)')) return
     await api.updatePageDoNotBuy(e.page_id, false)
@@ -68,7 +86,8 @@ export function DoNotBuyPage({ onOpenPage }: Props) {
 
   if (loading) return <div className="page-view-loading">로딩 중...</div>
 
-  const list = entries.filter((e) => e.do_not_buy)
+  const flagged = entries.filter((e) => e.do_not_buy)
+  const list = categoryFilter === 'all' ? flagged : flagged.filter((e) => e.do_not_buy_category === categoryFilter)
 
   return (
     <div className="donotbuy-wrap">
@@ -81,6 +100,18 @@ export function DoNotBuyPage({ onOpenPage }: Props) {
       />
       <div className="donotbuy-head">
         <h2 className="remind-heading danger">사면 안되는 종목</h2>
+        <label className="donotbuy-size-label">
+          카테고리
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as DoNotBuyCategory | 'all')}>
+            <option value="all">전체 ({flagged.length})</option>
+            {DO_NOT_BUY_CATEGORIES.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.label} ({flagged.filter((e) => e.do_not_buy_category === c.key).length})
+              </option>
+            ))}
+            <option value="">미지정 ({flagged.filter((e) => !e.do_not_buy_category).length})</option>
+          </select>
+        </label>
         <label className="donotbuy-size-label">
           보기 크기
           <select value={chartSize} onChange={(e) => setChartSize(Number(e.target.value))}>
@@ -103,6 +134,9 @@ export function DoNotBuyPage({ onOpenPage }: Props) {
               <div className="one-min-card-head">
                 <span className="one-min-card-title">
                   {e.result && <span className={`insight-result-badge ${e.result}`}>{e.result.toUpperCase()}</span>}
+                  {e.do_not_buy_category && (
+                    <span className="donotbuy-category-badge">{categoryLabel(e.do_not_buy_category)}</span>
+                  )}
                   {e.category_path ? `${e.category_path} > ` : ''}
                   {e.item_name}
                 </span>
@@ -115,6 +149,18 @@ export function DoNotBuyPage({ onOpenPage }: Props) {
                   </button>
                 </span>
               </div>
+              <select
+                className="do-not-buy-category-select"
+                value={e.do_not_buy_category}
+                onChange={(ev) => setCategory(e, ev.target.value as DoNotBuyCategory)}
+              >
+                <option value="">카테고리 선택</option>
+                {DO_NOT_BUY_CATEGORIES.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
               {e.content_html && (
                 <div className="insight-card-content" dangerouslySetInnerHTML={{ __html: e.content_html }} />
               )}
