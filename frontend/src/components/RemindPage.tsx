@@ -210,7 +210,11 @@ const APPROACH_STEPS = [
   {
     before: '이후 가격은 ',
     key: '매집 구간 위',
-    after: '로 나와야 한다',
+    after: (
+      <>
+        로 나와야 한다 <span className="remind-mantra-highlight">(돈들어오는것 확인필!)</span>
+      </>
+    ),
     tone: 'expect',
     tag: '예상 출력',
     comment: '확정된 사실이 아니다. ①·②가 맞을 경우 기대하는 관찰 결과이며, 실제 출력과 비교해 검증한다.',
