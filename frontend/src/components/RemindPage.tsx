@@ -172,6 +172,14 @@ const APPROACH_STEPS = [
   },
   {
     before: '',
+    key: '30분봉 최근 돈 들어온(매물대)',
+    after: '가 있는지',
+    tone: 'premise',
+    tag: '전제',
+    comment: '앞에 매물대가 있고, 그걸 돌파한 파동이 오늘 나왔다면, 매집구간이 최소 해당 앞전 매물대를 포함하니 더 파동을 만들 가능성이 크다.',
+  },
+  {
+    before: '',
     key: '물량을 아직 많이 넘기지 않았다',
     after: '',
     tone: 'premise',
