@@ -142,6 +142,23 @@ export interface OneMinNote {
   created_at: number
 }
 
+export interface BuyChecklistSettings {
+  id: string
+  descriptions: Record<string, string>
+}
+
+export type BuyCheckAnswer = 'yes' | 'no'
+export type BuyCheckVerdict = 'blocked' | 'review'
+
+export interface BuyCheckLogEntry {
+  id: string
+  created_at: number
+  verdict: BuyCheckVerdict
+  answers: Record<string, BuyCheckAnswer | null>
+  symbol: string | null
+  note: string | null
+}
+
 export interface RemindNote {
   id: string
   note_html: string
@@ -328,4 +345,17 @@ export const api = {
     request<RemindVideo>(`/api/remind/videos/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
   deleteRemindVideo: (id: string) =>
     request<{ ok: boolean }>(`/api/remind/videos/${id}`, { method: 'DELETE' }),
+
+  getBuyChecklistSettings: () => request<BuyChecklistSettings>('/api/buy-checklist/settings'),
+  updateBuyChecklistSettings: (descriptions: Record<string, string>) =>
+    request<BuyChecklistSettings>('/api/buy-checklist/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ descriptions }),
+    }),
+  createBuyCheckLog: (payload: {
+    verdict: BuyCheckVerdict
+    answers: Record<string, BuyCheckAnswer | null>
+    symbol?: string | null
+    note?: string | null
+  }) => request<BuyCheckLogEntry>('/api/buy-checklist/log', { method: 'POST', body: JSON.stringify(payload) }),
 }

@@ -2506,3 +2506,167 @@ summary.remind-mantra-row::-webkit-details-marker {
   }
 }
 
+
+/* Buy checklist tab (ported from the standalone desktop BuyChecklist app) */
+.buychk-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  max-width: 420px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.buychk-clock {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  background: #111419;
+  color: #fff;
+  border-radius: 4px;
+  padding: 8px 0;
+}
+
+.buychk-motto {
+  text-align: center;
+  font-weight: 700;
+  background: rgba(245, 197, 24, 0.12);
+  color: #f5c518;
+  border-radius: 4px;
+  padding: 10px 8px;
+  line-height: 1.5;
+}
+
+.buychk-trade-note {
+  background: rgba(245, 197, 24, 0.1);
+  border: 1px solid rgba(245, 197, 24, 0.3);
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: #ff6b6b;
+}
+
+.buychk-trade-note-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.buychk-trade-note ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.buychk-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.buychk-row {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.buychk-row-title {
+  font-weight: 700;
+  cursor: help;
+}
+
+.buychk-row-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.buychk-answer {
+  flex: 1;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 0;
+}
+
+.buychk-answer.pass {
+  background: #2e9d4f;
+  border-color: #2e9d4f;
+  color: #fff;
+}
+
+.buychk-answer.fail {
+  background: #d93636;
+  border-color: #d93636;
+  color: #fff;
+}
+
+.buychk-row-warning {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff6b6b;
+}
+
+.buychk-verdict {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 14px 0;
+}
+
+.buychk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.buychk-actions button {
+  flex: 1;
+}
+
+.buychk-settings-dialog {
+  width: min(560px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.buychk-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.buychk-settings-item-title {
+  font-weight: 700;
+}
+
+.buychk-settings-item-pass {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.buychk-settings-item textarea {
+  width: 100%;
+  background: var(--panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.buychk-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.buychk-settings-spacer {
+  flex: 1;
+}

@@ -13,6 +13,7 @@ import { LiveAnalysisPage } from './components/LiveAnalysisPage'
 import { RemindPage } from './components/RemindPage'
 import { OneMinComparePage } from './components/OneMinComparePage'
 import { DoNotBuyPage } from './components/DoNotBuyPage'
+import { BuyChecklistPage } from './components/BuyChecklistPage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -22,10 +23,20 @@ const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
-type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind' | 'onemin' | 'donotbuy'
+type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind' | 'onemin' | 'donotbuy' | 'buychecklist'
 type Selection = { type: 'item' | 'category'; id: string } | null
 
-const KNOWN_TABS: Tab[] = ['notes', 'reference', 'study', 'insights', 'live', 'remind', 'onemin', 'donotbuy']
+const KNOWN_TABS: Tab[] = [
+  'notes',
+  'reference',
+  'study',
+  'insights',
+  'live',
+  'remind',
+  'onemin',
+  'donotbuy',
+  'buychecklist',
+]
 
 function loadActiveTab(): Tab {
   const raw = localStorage.getItem(ACTIVE_TAB_KEY)
@@ -192,6 +203,13 @@ export default function App() {
         >
           Remind(사면안되는 종목)
         </button>
+        <button
+          type="button"
+          className={activeTab === 'buychecklist' ? 'active' : ''}
+          onClick={() => setActiveTab('buychecklist')}
+        >
+          매수 체크
+        </button>
       </div>
       {activeTab === 'notes' ? (
         <div className="app-layout">
@@ -237,8 +255,10 @@ export default function App() {
         <RemindPage onOpenPage={openInsight} />
       ) : activeTab === 'onemin' ? (
         <OneMinComparePage />
-      ) : (
+      ) : activeTab === 'donotbuy' ? (
         <DoNotBuyPage onOpenPage={openInsight} />
+      ) : (
+        <BuyChecklistPage />
       )}
     </div>
   )

@@ -7,10 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .db import SessionLocal, ensure_schema
-from .models import REMIND_NOTE_ID, ROOT_CATEGORY_ID, ROOT_STUDY_PLAN_ID
-from .orm import CategoryORM, RemindNoteORM, StudyPlanNodeORM
+from .models import BUY_CHECKLIST_SETTINGS_ID, REMIND_NOTE_ID, ROOT_CATEGORY_ID, ROOT_STUDY_PLAN_ID
+from .orm import BuyChecklistSettingsORM, CategoryORM, RemindNoteORM, StudyPlanNodeORM
 from .paths import ASSETS_DIR, DATA_DIR, REMIND_VIDEO_DIR
-from .routers import assets, categories, items, one_min_notes, pages, remind, reference, study_plan, todos
+from .routers import assets, buy_checklist, categories, items, one_min_notes, pages, remind, reference, study_plan, todos
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
@@ -31,6 +31,9 @@ with SessionLocal() as _session:
     if _session.get(RemindNoteORM, REMIND_NOTE_ID) is None:
         _session.add(RemindNoteORM(id=REMIND_NOTE_ID, note_html=""))
         _session.commit()
+    if _session.get(BuyChecklistSettingsORM, BUY_CHECKLIST_SETTINGS_ID) is None:
+        _session.add(BuyChecklistSettingsORM(id=BUY_CHECKLIST_SETTINGS_ID, descriptions_json="{}"))
+        _session.commit()
 
 app = FastAPI(title="POCTraderBR Web")
 
@@ -50,6 +53,7 @@ app.include_router(reference.router)
 app.include_router(study_plan.router)
 app.include_router(remind.router)
 app.include_router(one_min_notes.router)
+app.include_router(buy_checklist.router)
 
 app.mount("/uploads", StaticFiles(directory=str(ASSETS_DIR)), name="uploads")
 

@@ -109,6 +109,24 @@ class RemindVideoORM(Base):
     created_at: Mapped[float] = mapped_column(default=0.0)
 
 
+class BuyChecklistSettingsORM(Base):
+    __tablename__ = "buy_checklist_settings"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    descriptions_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
+class BuyCheckLogORM(Base):
+    __tablename__ = "buy_check_log"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    created_at: Mapped[float] = mapped_column(default=0.0)
+    verdict: Mapped[str] = mapped_column(Text)
+    answers_json: Mapped[str] = mapped_column(Text, default="{}")
+    symbol: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
 class OneMinNoteORM(Base):
     __tablename__ = "one_min_notes"
 

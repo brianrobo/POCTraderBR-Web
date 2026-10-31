@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 ROOT_CATEGORY_ID = "__ROOT__"
 ROOT_STUDY_PLAN_ID = "__STUDY_ROOT__"
 REMIND_NOTE_ID = "__REMIND__"
+BUY_CHECKLIST_SETTINGS_ID = "__BUY_CHECKLIST__"
 
 
 def new_id() -> str:
@@ -169,6 +170,27 @@ class RemindFolderVideo(BaseModel):
 class RemindFolder(BaseModel):
     folder: str
     videos: List[RemindFolderVideo] = Field(default_factory=list)
+
+
+class BuyChecklistSettings(BaseModel):
+    """User-edited descriptions for the 매수 체크 items (only entries that
+    differ from the built-in default are kept, so improving a default later
+    still reaches users who never customized it)."""
+
+    id: str
+    descriptions: dict[str, str] = Field(default_factory=dict)
+
+
+class BuyCheckLogEntry(BaseModel):
+    """One row per 매수 체크 verdict (blocked/review) or 작전 타임 start —
+    mirrors the desktop app's append-only check_log.jsonl."""
+
+    id: str
+    created_at: float = Field(default_factory=now)
+    verdict: Literal["blocked", "review"]
+    answers: dict[str, Optional[Literal["yes", "no"]]] = Field(default_factory=dict)
+    symbol: Optional[str] = None
+    note: Optional[str] = None
 
 
 class OneMinNote(BaseModel):
