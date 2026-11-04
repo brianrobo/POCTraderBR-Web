@@ -1,6 +1,15 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { api, type BuyCheckAnswer, type BuyCheckVerdict, type BuyChecklistSettings } from '../api/client'
 
+// US market day, not the viewer's local calendar day — the regular+after-hours
+// session (now 23:30~06:00 KST since DST ended) straddles KST midnight, so
+// locking on a KST date change would lock the checklist mid-session. ET
+// midnight always falls inside the closed hours (after 20:00, before 04:00 ET).
+const ET_ZONE = 'America/New_York'
+function etDateString(d: Date): string {
+  return d.toLocaleDateString('en-CA', { timeZone: ET_ZONE })
+}
+
 // Ported from the standalone BuyChecklist desktop app (D:\___POCTraderBR_BuyChecklist)
 // so the 영웅문 체크리스트를 웹 서버 탭에서도 그대로 쓸 수 있게. Rules/copy mirror
 // buy_checklist/rules.py and ui/app.py exactly. Window-only concerns (always-on-top,
@@ -19,7 +28,7 @@ interface CheckItem {
 const CHECK_ITEMS: CheckItem[] = [
   {
     id: 'double_burst',
-    title: '① 두 번 터졌냐?',
+    title: '① 두 번 터졌나 or 넘기는 물량 나왔나?',
     passAnswer: 'no',
     defaultDescription:
       '큰 파동 이후 고점 돌파 과정에서 1분봉 대량거래를 동반한 돌파 시도가 2회 이상 발생했는지 확인.\n두 번 이상 터졌다면 물량 넘김/배분 가능성을 의심하여 제외.',
@@ -60,6 +69,7 @@ const TRADE_NOTE_LINES = [
   '짧은 돌파 바로 익절! (이걸 반복한다)',
   '돌파 형태만 보고 매수 X (매집구간, 물량넘긴 흔적X 확인필)',
   '이격도 볼것 (들어갈때 이격도 큰부분에서는 X)',
+  '시나리오대로 안가면 과감히 pass',
 ]
 const TRADE_NOTE_BEFORE = 'recent_loss'
 
@@ -103,7 +113,7 @@ export function BuyChecklistPage() {
   const [settings, setSettings] = useState<BuyChecklistSettings | null>(null)
   const [answers, setAnswers] = useState<Answers>({})
   const [now, setNow] = useState(() => new Date())
-  const [sessionDate, setSessionDate] = useState(() => new Date().toDateString())
+  const [sessionDate, setSessionDate] = useState(() => etDateString(new Date()))
   const [locked, setLocked] = useState(false)
   const [blinkOn, setBlinkOn] = useState(true)
   const [timeoutUntil, setTimeoutUntil] = useState<number | null>(loadTimeoutUntil)
@@ -127,7 +137,7 @@ export function BuyChecklistPage() {
   // Date change (midnight) locks the checklist; a saved 작전 타임 that has
   // elapsed clears itself — both checked every tick, same as the desktop app.
   useEffect(() => {
-    if (!locked && now.toDateString() !== sessionDate) setLocked(true)
+    if (!locked && etDateString(now) !== sessionDate) setLocked(true)
     if (timeoutUntil && Date.now() >= timeoutUntil) {
       setTimeoutUntil(null)
       setAnswers({})
@@ -193,7 +203,7 @@ export function BuyChecklistPage() {
     if (locked) {
       if (!window.confirm('자정이 지나 매수 금지 상태입니다.\n잠금을 해제하고 오늘 체크를 새로 시작할까요?')) return
       setLocked(false)
-      setSessionDate(new Date().toDateString())
+      setSessionDate(etDateString(new Date()))
       setAnswers({})
       lastVerdictRef.current = 'checking'
       return
