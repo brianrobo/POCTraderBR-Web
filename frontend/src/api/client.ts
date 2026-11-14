@@ -158,6 +158,120 @@ export interface VirtualSimNote {
   note_html: string
 }
 
+export type SimTrack = '30m' | '1m'
+export type SimOutcome = '' | 'profit' | 'loss'
+export type SimAnswer = 'buy' | 'skip'
+
+export interface SimFrame {
+  id: string
+  scenario_id: string
+  track: SimTrack
+  position: number
+  image_url: string
+  label: string
+  sync_frame_id: string | null
+  is_quiz: boolean
+  quiz_outcome: SimOutcome
+  quiz_note: string
+}
+
+export interface SimAttempt {
+  id: string
+  scenario_id: string
+  frame_id: string
+  answer: SimAnswer
+  result: '' | 'correct' | 'wrong'
+  created_at: number
+}
+
+// 'frames' replays captured chart images; 'bars' replays imported price data.
+export type SimKind = 'frames' | 'bars'
+
+export interface SimScenario {
+  id: string
+  name: string
+  kind: SimKind
+  position: number
+  created_at: number
+  frame_count_30m: number
+  frame_count_1m: number
+  bar_count: number
+  quiz_count: number
+  graded_count: number
+  correct_count: number
+}
+
+export interface SimScenarioDetail extends SimScenario {
+  frames: SimFrame[]
+  attempts: SimAttempt[]
+}
+
+export interface SimBarQuiz {
+  id: string
+  scenario_id: string
+  /** First bar of the watched range; equal to `bar_time` for a quiz about a single moment. */
+  start_time: number
+  /** Last bar of the range — where the question is asked. */
+  bar_time: number
+  outcome: SimOutcome
+  note: string
+}
+
+export interface SimBarAttempt {
+  id: string
+  scenario_id: string
+  quiz_id: string
+  answer: SimAnswer
+  result: '' | 'correct' | 'wrong'
+  created_at: number
+}
+
+export type SimDrawingKind = 'line' | 'rect' | 'ellipse'
+
+/**
+ * A shape drawn on the 1-minute chart, spanning two corner points: `x` is a
+ * position along the bars (index, fractional between two bars and free to run
+ * past the last one), `y` a price.
+ */
+export interface SimDrawing {
+  id: string
+  kind: SimDrawingKind
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  /** Index of the latest bar on the chart when it was drawn; practice shows it from that bar on. */
+  at: number
+}
+
+export interface SimBarData {
+  scenario_id: string
+  symbol: string
+  source_name: string
+  replay_from: number
+  /** [time, open, high, low, close, volume] per 1-minute bar, oldest first. */
+  bars: number[][]
+  quizzes: SimBarQuiz[]
+  attempts: SimBarAttempt[]
+  drawings: SimDrawing[]
+}
+
+export interface SimPriceSession {
+  /** Time of the session's first bar — what a scenario's replay starts at. */
+  start: number
+  end: number
+  bar_count: number
+  high: number
+  low: number
+}
+
+export interface SimPriceFileInfo {
+  symbol: string
+  source_name: string
+  bar_count: number
+  sessions: SimPriceSession[]
+}
+
 export interface BuyChecklistSettings {
   id: string
   descriptions: Record<string, string>
@@ -378,6 +492,70 @@ export const api = {
   getVirtualSimNote: () => request<VirtualSimNote>('/api/virtual-sim/note'),
   updateVirtualSimNote: (note_html: string) =>
     request<VirtualSimNote>('/api/virtual-sim/note', { method: 'PATCH', body: JSON.stringify({ note_html }) }),
+
+  listSimScenarios: () => request<SimScenario[]>('/api/sim/scenarios'),
+  createSimScenario: (name: string) =>
+    request<SimScenario>('/api/sim/scenarios', { method: 'POST', body: JSON.stringify({ name }) }),
+  getSimScenario: (id: string) => request<SimScenarioDetail>(`/api/sim/scenarios/${id}`),
+  renameSimScenario: (id: string, name: string) =>
+    request<SimScenario>(`/api/sim/scenarios/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  deleteSimScenario: (id: string) => request<{ ok: boolean }>(`/api/sim/scenarios/${id}`, { method: 'DELETE' }),
+  addSimFrame: (scenarioId: string, track: SimTrack, image: Blob, filename = 'frame.png') => {
+    const form = new FormData()
+    form.append('file', image, filename)
+    return request<SimFrame>(`/api/sim/scenarios/${scenarioId}/frames?track=${track}`, { method: 'POST', body: form })
+  },
+  clearSimFrames: (scenarioId: string, track: SimTrack) =>
+    request<SimScenarioDetail>(`/api/sim/scenarios/${scenarioId}/frames?track=${track}`, { method: 'DELETE' }),
+  updateSimFrame: (
+    id: string,
+    patch: {
+      label?: string
+      sync_frame_id?: string
+      is_quiz?: boolean
+      quiz_outcome?: SimOutcome
+      quiz_note?: string
+    },
+  ) => request<SimFrame>(`/api/sim/frames/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteSimFrame: (id: string) => request<SimScenarioDetail>(`/api/sim/frames/${id}`, { method: 'DELETE' }),
+  createSimAttempt: (frameId: string, answer: SimAnswer) =>
+    request<SimAttempt>(`/api/sim/frames/${frameId}/attempts`, { method: 'POST', body: JSON.stringify({ answer }) }),
+  inspectSimPriceFile: (file: File) => {
+    const form = new FormData()
+    form.append('file', file, file.name)
+    return request<SimPriceFileInfo>('/api/sim/price-files/inspect', { method: 'POST', body: form })
+  },
+  importSimScenario: (file: File, replayFrom: number, name: string) => {
+    const form = new FormData()
+    form.append('file', file, file.name)
+    form.append('replay_from', String(replayFrom))
+    form.append('name', name)
+    return request<SimScenario>('/api/sim/scenarios/import', { method: 'POST', body: form })
+  },
+  getSimBars: (scenarioId: string) => request<SimBarData>(`/api/sim/scenarios/${scenarioId}/bars`),
+  updateSimBars: (scenarioId: string, patch: { replay_from?: number }) =>
+    request<SimBarData>(`/api/sim/scenarios/${scenarioId}/bars`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  setSimDrawings: (scenarioId: string, drawings: SimDrawing[]) =>
+    request<SimDrawing[]>(`/api/sim/scenarios/${scenarioId}/drawings`, {
+      method: 'PUT',
+      body: JSON.stringify(drawings),
+    }),
+  addSimBarQuiz: (scenarioId: string, start_time: number, bar_time: number) =>
+    request<SimBarQuiz>(`/api/sim/scenarios/${scenarioId}/bar-quizzes`, {
+      method: 'POST',
+      body: JSON.stringify({ start_time, bar_time }),
+    }),
+  updateSimBarQuiz: (
+    id: string,
+    patch: { start_time?: number; bar_time?: number; outcome?: SimOutcome; note?: string },
+  ) =>
+    request<SimBarQuiz>(`/api/sim/bar-quizzes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteSimBarQuiz: (id: string) => request<{ ok: boolean }>(`/api/sim/bar-quizzes/${id}`, { method: 'DELETE' }),
+  createSimBarAttempt: (quizId: string, answer: SimAnswer) =>
+    request<SimBarAttempt>(`/api/sim/bar-quizzes/${quizId}/attempts`, {
+      method: 'POST',
+      body: JSON.stringify({ answer }),
+    }),
 
   listChartPatterns: () => request<ChartPattern[]>('/api/chart-patterns'),
   createChartPattern: (name: string, pdf_group = '') =>

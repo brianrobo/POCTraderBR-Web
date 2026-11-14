@@ -26,6 +26,7 @@ from .routers import (
     pages,
     remind,
     reference,
+    sim,
     study_plan,
     todos,
     virtual_sim,
@@ -103,6 +104,7 @@ app.include_router(remind.router)
 app.include_router(one_min_notes.router)
 app.include_router(buy_checklist.router)
 app.include_router(virtual_sim.router)
+app.include_router(sim.router)
 app.include_router(chart_patterns.router)
 
 app.mount("/uploads", StaticFiles(directory=str(ASSETS_DIR)), name="uploads")

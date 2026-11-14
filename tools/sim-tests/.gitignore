@@ -1,0 +1,5 @@
+# sim_ui_test.mjs output
+chrome-profile/
+*.png
+*.log
+*.cdt

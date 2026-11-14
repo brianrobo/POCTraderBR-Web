@@ -64,6 +64,9 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("pages", "leading_span2_checked", "ALTER TABLE pages ADD COLUMN leading_span2_checked BOOLEAN DEFAULT 0"),
     ("pages", "period_symmetry", "ALTER TABLE pages ADD COLUMN period_symmetry TEXT DEFAULT ''"),
     ("pages", "leading_span2", "ALTER TABLE pages ADD COLUMN leading_span2 TEXT DEFAULT ''"),
+    ("sim_scenarios", "kind", "ALTER TABLE sim_scenarios ADD COLUMN kind TEXT DEFAULT 'frames'"),
+    ("sim_bar_sets", "drawings_json", "ALTER TABLE sim_bar_sets ADD COLUMN drawings_json TEXT DEFAULT '[]'"),
+    ("sim_bar_quizzes", "start_time", "ALTER TABLE sim_bar_quizzes ADD COLUMN start_time INTEGER DEFAULT 0"),
 ]
 
 # The single shared note_html column became per-column note_html_a/note_html_b.

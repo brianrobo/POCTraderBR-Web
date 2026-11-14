@@ -1,11 +1,32 @@
 import { useEffect, useState } from 'react'
 import { api, type VirtualSimNote } from '../api/client'
 import { NoteEditor } from './NoteEditor'
+import { SimulatorPage } from './SimulatorPage'
 
-// Research notes on using/building a real-historical-data trading simulator
-// (2026-11-07 kickoff). Just a single editable note for now, same shape as
-// the Remind note — add structure here later if the research grows past it.
+type View = 'simulator' | 'research'
+
+// Two views: the frame simulator (captured chart flows replayed as a buy /
+// pass quiz) and the research note on real-historical-data simulators
+// (2026-11-07 kickoff) that this tab started as.
 export function VirtualSimPage() {
+  const [view, setView] = useState<View>('simulator')
+
+  return (
+    <div className="virtualsim-root">
+      <div className="virtualsim-subtabs">
+        <button type="button" className={view === 'simulator' ? 'active' : ''} onClick={() => setView('simulator')}>
+          시뮬레이터
+        </button>
+        <button type="button" className={view === 'research' ? 'active' : ''} onClick={() => setView('research')}>
+          리서치 노트
+        </button>
+      </div>
+      {view === 'simulator' ? <SimulatorPage /> : <ResearchNote />}
+    </div>
+  )
+}
+
+function ResearchNote() {
   const [note, setNote] = useState<VirtualSimNote | null>(null)
 
   useEffect(() => {

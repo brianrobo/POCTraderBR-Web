@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>FAKECHART</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="1000" height="600"></canvas>
+    <script>
+      const ctx = document.getElementById('c').getContext('2d')
+      let name = '1m'
+      let bars = 5
+      function draw() {
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(0, 0, 1000, 600)
+        ctx.strokeStyle = '#ccc'
+        for (let y = 100; y < 600; y += 100) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1000, y); ctx.stroke()
+        }
+        for (let b = 0; b < bars; b++) {
+          const up = (b * 7) % 3 !== 0
+          const top = 300 - Math.sin(b / 2) * 120 - b * 4
+          ctx.fillStyle = up ? '#d93a3a' : '#2a62d9'
+          ctx.fillRect(40 + b * 28, top, 18, 60)
+          ctx.fillRect(48 + b * 28, top - 20, 2, 100)
+        }
+        ctx.fillStyle = '#000'
+        ctx.font = 'bold 40px sans-serif'
+        ctx.fillText(`FAKE ${name}  bars=${bars}`, 30, 60)
+        ctx.font = '24px sans-serif'
+        ctx.fillText(`17:${String(bars).padStart(2, '0')}:00`, 860, 580)
+      }
+      window.reset = (n) => { name = n; bars = 5; draw() }
+      window.step = () => { bars += 1; draw() }
+      draw()
+    </script>
+  </body>
+</html>

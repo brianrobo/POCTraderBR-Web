@@ -150,6 +150,96 @@ class ChartPatternORM(Base):
     created_at: Mapped[float] = mapped_column(default=0.0)
 
 
+class SimScenarioORM(Base):
+    """One replayable chart flow for the Virtual Simul tab. A 'frames'
+    scenario is two ordered runs of captured frames (30-minute and 1-minute
+    chart, one frame per candle step) with some 1-minute frames marked as quiz
+    points; a 'bars' scenario replays imported 1-minute price data instead,
+    with the charts drawn by the app (see SimBarSetORM)."""
+
+    __tablename__ = "sim_scenarios"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(Text, default="frames")  # frames/bars
+    position: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
+class SimFrameORM(Base):
+    __tablename__ = "sim_frames"
+    __table_args__ = (Index("ix_sim_frames_scenario", "scenario_id"),)
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    scenario_id: Mapped[str] = mapped_column(ForeignKey("sim_scenarios.id"))
+    track: Mapped[str] = mapped_column(Text, default="1m")  # 30m/1m
+    position: Mapped[int] = mapped_column(default=0)  # order within its track
+    image_path: Mapped[str] = mapped_column(Text)
+    label: Mapped[str] = mapped_column(Text, default="")  # e.g. the bar time, shown under the chart
+    # 30m frames only: the 1m frame from which this frame is shown during
+    # replay. Not a ForeignKey — deleting the 1m frame re-points it instead.
+    sync_frame_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_quiz: Mapped[bool] = mapped_column(default=False)
+    quiz_outcome: Mapped[str] = mapped_column(Text, default="")  # ''/profit/loss — what buying here led to
+    quiz_note: Mapped[str] = mapped_column(Text, default="")
+
+
+class SimAttemptORM(Base):
+    __tablename__ = "sim_attempts"
+    __table_args__ = (Index("ix_sim_attempts_scenario", "scenario_id"),)
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    scenario_id: Mapped[str] = mapped_column(ForeignKey("sim_scenarios.id"))
+    frame_id: Mapped[str] = mapped_column(ForeignKey("sim_frames.id"))
+    answer: Mapped[str] = mapped_column(Text)  # buy/skip
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
+class SimBarSetORM(Base):
+    """The price data behind a 'bars' scenario: every 1-minute bar of the
+    imported file. Replay starts at `replay_from`; the bars before it are the
+    history already on the chart at that moment."""
+
+    __tablename__ = "sim_bar_sets"
+
+    scenario_id: Mapped[str] = mapped_column(ForeignKey("sim_scenarios.id"), primary_key=True)
+    symbol: Mapped[str] = mapped_column(Text, default="")
+    source_name: Mapped[str] = mapped_column(Text, default="")  # the imported file's name
+    # JSON [[time, open, high, low, close, volume], ...], oldest first — see price_files.Bar.
+    bars_json: Mapped[str] = mapped_column(Text, default="[]")
+    replay_from: Mapped[int] = mapped_column(default=0)  # a bar's time
+    # JSON list of the shapes drawn on the 1-minute chart — see models.SimDrawing.
+    drawings_json: Mapped[str] = mapped_column(Text, default="[]")
+
+
+class SimBarQuizORM(Base):
+    """A quiz of a 'bars' scenario — the counterpart of a quiz frame. The
+    replay is watched from the bar at `start_time` up to the one at `bar_time`,
+    where the question is asked; the two are the same bar for a quiz about a
+    single moment."""
+
+    __tablename__ = "sim_bar_quizzes"
+    __table_args__ = (Index("ix_sim_bar_quizzes_scenario", "scenario_id"),)
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    scenario_id: Mapped[str] = mapped_column(ForeignKey("sim_scenarios.id"))
+    start_time: Mapped[int] = mapped_column(default=0)  # 0 (rows from before ranges): same as bar_time
+    bar_time: Mapped[int] = mapped_column(default=0)
+    outcome: Mapped[str] = mapped_column(Text, default="")  # ''/profit/loss — whether price rose afterwards
+    note: Mapped[str] = mapped_column(Text, default="")
+
+
+class SimBarAttemptORM(Base):
+    __tablename__ = "sim_bar_attempts"
+    __table_args__ = (Index("ix_sim_bar_attempts_scenario", "scenario_id"),)
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    scenario_id: Mapped[str] = mapped_column(ForeignKey("sim_scenarios.id"))
+    quiz_id: Mapped[str] = mapped_column(ForeignKey("sim_bar_quizzes.id"))
+    answer: Mapped[str] = mapped_column(Text)  # buy/skip
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
 class OneMinNoteORM(Base):
     __tablename__ = "one_min_notes"
 

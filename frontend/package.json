@@ -15,6 +15,7 @@
     "@tiptap/react": "^3.29.2",
     "@tiptap/starter-kit": "^3.29.2",
     "fabric": "^7.4.0",
+    "lightweight-charts": "^5.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

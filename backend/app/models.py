@@ -213,6 +213,130 @@ class ChartPattern(BaseModel):
     created_at: float = Field(default_factory=now)
 
 
+class SimFrame(BaseModel):
+    """One captured chart frame of a simulator scenario, on either the
+    30-minute or the 1-minute track. Replay steps through the 1m track; a 30m
+    frame comes into view once replay reaches its `sync_frame_id` 1m frame.
+    A quiz frame is a buy-or-not decision point; `quiz_outcome` records what
+    buying there led to, which is what an answer gets graded against."""
+
+    id: str
+    scenario_id: str
+    track: Literal["30m", "1m"] = "1m"
+    position: int = 0
+    image_url: str
+    label: str = ""
+    sync_frame_id: Optional[str] = None
+    is_quiz: bool = False
+    quiz_outcome: Literal["", "profit", "loss"] = ""
+    quiz_note: str = ""
+
+
+class SimAttempt(BaseModel):
+    """One practice answer at a quiz frame. `result` is derived from the
+    frame's current outcome rather than stored, so re-grading a frame also
+    re-grades its past attempts ('' while the outcome is still unset)."""
+
+    id: str
+    scenario_id: str
+    frame_id: str
+    answer: Literal["buy", "skip"]
+    result: Literal["", "correct", "wrong"] = ""
+    created_at: float = Field(default_factory=now)
+
+
+class SimScenario(BaseModel):
+    id: str
+    name: str
+    kind: Literal["frames", "bars"] = "frames"
+    position: int = 0
+    created_at: float = Field(default_factory=now)
+    frame_count_30m: int = 0
+    frame_count_1m: int = 0
+    bar_count: int = 0  # 'bars' scenarios: 1-minute bars from the replay start on
+    quiz_count: int = 0
+    graded_count: int = 0
+    correct_count: int = 0
+
+
+class SimScenarioDetail(SimScenario):
+    frames: List[SimFrame] = Field(default_factory=list)
+    attempts: List[SimAttempt] = Field(default_factory=list)
+
+
+class SimBarQuiz(BaseModel):
+    """A quiz of a 'bars' scenario: the bars from `start_time` to `bar_time`
+    are watched, then the question is asked at `bar_time` (the same bar for a
+    quiz about a single moment). Graded like a quiz frame — 'profit' means
+    price rose afterwards, and 'buy' is the answer that says so."""
+
+    id: str
+    scenario_id: str
+    start_time: int
+    bar_time: int
+    outcome: Literal["", "profit", "loss"] = ""
+    note: str = ""
+
+
+class SimBarAttempt(BaseModel):
+    id: str
+    scenario_id: str
+    quiz_id: str
+    answer: Literal["buy", "skip"]
+    result: Literal["", "correct", "wrong"] = ""
+    created_at: float = Field(default_factory=now)
+
+
+class SimDrawing(BaseModel):
+    """A line, rectangle or ellipse drawn on the 1-minute chart of a 'bars'
+    scenario, spanning two corner points. `x` is a position along the bars
+    (index into `bars`, fractional between two bars and free to run past the
+    last one), `y` a price. `at` is the index of the latest bar on the chart
+    when it was drawn — practice shows the drawing from that bar on."""
+
+    id: str
+    kind: Literal["line", "rect", "ellipse"]
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    at: int = 0
+
+
+class SimBarData(BaseModel):
+    """Everything a 'bars' scenario replays. `bars` rows are
+    [time, open, high, low, close, volume], oldest first, where time is the
+    exchange wall-clock time read as UTC (epoch seconds)."""
+
+    scenario_id: str
+    symbol: str = ""
+    source_name: str = ""
+    replay_from: int = 0
+    bars: List[List[float]] = Field(default_factory=list)
+    quizzes: List[SimBarQuiz] = Field(default_factory=list)
+    attempts: List[SimBarAttempt] = Field(default_factory=list)
+    drawings: List[SimDrawing] = Field(default_factory=list)
+
+
+class SimPriceSession(BaseModel):
+    """One trading session found in a price file — a day a scenario can replay."""
+
+    start: int  # time of the session's first bar; what replay_from is set to
+    end: int
+    bar_count: int
+    high: float
+    low: float
+
+
+class SimPriceFileInfo(BaseModel):
+    """What an exported price file holds, shown before a scenario is made of it."""
+
+    symbol: str = ""
+    source_name: str = ""
+    bar_count: int = 0
+    sessions: List[SimPriceSession] = Field(default_factory=list)
+
+
 class OneMinNote(BaseModel):
     """A freeform 'My Insight' memo attached to either the PASS or FAIL
     column of the 1분봉 비교 page — an append-only running list, not tied to
