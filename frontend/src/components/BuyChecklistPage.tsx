@@ -69,6 +69,7 @@ const TRADE_NOTE_LINES = [
   '짧은 돌파 바로 익절! (이걸 반복한다)',
   '돌파 형태만 보고 매수 X (매집구간, 물량넘긴 흔적X 확인필)',
   '이격도 볼것 (들어갈때 이격도 큰부분에서는 X)',
+  '정배열 확인',
   '시나리오대로 안가면 과감히 pass',
 ]
 const TRADE_NOTE_BEFORE = 'recent_loss'
@@ -81,7 +82,75 @@ const VERDICT_STYLE: Record<'checking' | BuyCheckVerdict, { label: string; color
 
 const TIMEOUT_KEY = 'poctrader:buyChecklist:timeoutUntil'
 
+// Up to 10 symbols/tickers for the day, navigated with ◀/▶ so each slot keeps
+// its own typed text. Scoped to the ET market date like the lock above, so it
+// discards itself the same way a fresh trading day starts.
+const SYMBOLS_KEY = 'poctrader:buyChecklist:symbols'
+const SYMBOL_SLOTS = 10
+
 type Answers = Record<string, BuyCheckAnswer | null>
+
+interface SymbolEntry {
+  ticker: string
+  name: string
+}
+
+function emptySymbolEntry(): SymbolEntry {
+  return { ticker: '', name: '' }
+}
+
+interface SymbolQueueState {
+  date: string
+  symbols: SymbolEntry[]
+  answers: Answers[] // one checklist per slot, so switching ◀/▶ keeps each symbol's own progress
+  activeSlot: number
+}
+
+function emptySymbolQueue(date: string): SymbolQueueState {
+  return {
+    date,
+    symbols: Array.from({ length: SYMBOL_SLOTS }, emptySymbolEntry),
+    answers: Array.from({ length: SYMBOL_SLOTS }, () => ({})),
+    activeSlot: 0,
+  }
+}
+
+function loadSymbolQueue(): SymbolQueueState {
+  const today = etDateString(new Date())
+  try {
+    const raw = localStorage.getItem(SYMBOLS_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (
+        parsed &&
+        parsed.date === today &&
+        Array.isArray(parsed.symbols) &&
+        parsed.symbols.length === SYMBOL_SLOTS
+      ) {
+        const slot = Number(parsed.activeSlot)
+        const answers = Array.isArray(parsed.answers) && parsed.answers.length === SYMBOL_SLOTS
+          ? parsed.answers.map((a: unknown) => (a && typeof a === 'object' ? (a as Answers) : {}))
+          : Array.from({ length: SYMBOL_SLOTS }, () => ({}))
+        return {
+          date: today,
+          symbols: parsed.symbols.map((s: unknown) =>
+            s && typeof s === 'object'
+              ? {
+                  ticker: typeof (s as SymbolEntry).ticker === 'string' ? (s as SymbolEntry).ticker : '',
+                  name: typeof (s as SymbolEntry).name === 'string' ? (s as SymbolEntry).name : '',
+                }
+              : emptySymbolEntry(),
+          ),
+          answers,
+          activeSlot: Number.isInteger(slot) && slot >= 0 && slot < SYMBOL_SLOTS ? slot : 0,
+        }
+      }
+    }
+  } catch {
+    // ignore corrupt storage
+  }
+  return emptySymbolQueue(today)
+}
 
 function isPass(item: CheckItem, answer: BuyCheckAnswer | null | undefined): boolean | null {
   if (!answer) return null
@@ -111,14 +180,26 @@ function descriptionFor(item: CheckItem, settings: BuyChecklistSettings | null):
 
 export function BuyChecklistPage() {
   const [settings, setSettings] = useState<BuyChecklistSettings | null>(null)
-  const [answers, setAnswers] = useState<Answers>({})
   const [now, setNow] = useState(() => new Date())
   const [sessionDate, setSessionDate] = useState(() => etDateString(new Date()))
   const [locked, setLocked] = useState(false)
   const [blinkOn, setBlinkOn] = useState(true)
   const [timeoutUntil, setTimeoutUntil] = useState<number | null>(loadTimeoutUntil)
   const [showSettings, setShowSettings] = useState(false)
-  const lastVerdictRef = useRef<'checking' | BuyCheckVerdict>('checking')
+  const [symbolQueue, setSymbolQueue] = useState<SymbolQueueState>(loadSymbolQueue)
+  // Last verdict logged *per slot*, so switching symbols doesn't make one
+  // slot's log history bleed into another's.
+  const lastVerdictBySlotRef = useRef<Array<'checking' | BuyCheckVerdict>>(Array(SYMBOL_SLOTS).fill('checking'))
+
+  const answers = symbolQueue.answers[symbolQueue.activeSlot] ?? {}
+
+  const setActiveAnswers = (next: Answers) => {
+    setSymbolQueue((prev) => {
+      const answersBySlot = [...prev.answers]
+      answersBySlot[prev.activeSlot] = next
+      return { ...prev, answers: answersBySlot }
+    })
+  }
 
   useEffect(() => {
     api.getBuyChecklistSettings().then(setSettings)
@@ -134,14 +215,22 @@ export function BuyChecklistPage() {
     else localStorage.removeItem(TIMEOUT_KEY)
   }, [timeoutUntil])
 
+  useEffect(() => {
+    localStorage.setItem(SYMBOLS_KEY, JSON.stringify(symbolQueue))
+  }, [symbolQueue])
+
   // Date change (midnight) locks the checklist; a saved 작전 타임 that has
   // elapsed clears itself — both checked every tick, same as the desktop app.
   useEffect(() => {
-    if (!locked && etDateString(now) !== sessionDate) setLocked(true)
-    if (timeoutUntil && Date.now() >= timeoutUntil) {
+    const today = etDateString(now)
+    if (!locked && today !== sessionDate) setLocked(true)
+    if (today !== symbolQueue.date) {
+      setSymbolQueue(emptySymbolQueue(today))
+      lastVerdictBySlotRef.current = Array(SYMBOL_SLOTS).fill('checking')
+    } else if (timeoutUntil && Date.now() >= timeoutUntil) {
       setTimeoutUntil(null)
-      setAnswers({})
-      lastVerdictRef.current = 'checking'
+      setActiveAnswers({})
+      lastVerdictBySlotRef.current[symbolQueue.activeSlot] = 'checking'
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now])
@@ -157,23 +246,47 @@ export function BuyChecklistPage() {
     return () => window.clearInterval(t)
   }, [shouldBlink])
 
+  const currentEntry = symbolQueue.symbols[symbolQueue.activeSlot] ?? emptySymbolEntry()
+  const currentSymbol = [currentEntry.ticker.trim(), currentEntry.name.trim()].filter(Boolean).join(' ') || null
+
   // Log every time a *decision* (blocked/review) is newly reached — not on
   // every click, and not while locked/timed-out (those paths log on their
   // own trigger instead).
   useEffect(() => {
     if (locked || timeoutUntil) return
-    if (liveVerdict !== lastVerdictRef.current && liveVerdict !== 'checking') {
-      void api.createBuyCheckLog({ verdict: liveVerdict, answers }).catch(() => undefined)
+    const slot = symbolQueue.activeSlot
+    if (liveVerdict !== lastVerdictBySlotRef.current[slot] && liveVerdict !== 'checking') {
+      void api.createBuyCheckLog({ verdict: liveVerdict, answers, symbol: currentSymbol }).catch(() => undefined)
     }
-    lastVerdictRef.current = liveVerdict
+    lastVerdictBySlotRef.current[slot] = liveVerdict
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, locked, timeoutUntil])
 
+  const moveSymbolSlot = (delta: number) => {
+    setSymbolQueue((prev) => ({
+      ...prev,
+      activeSlot: Math.min(SYMBOL_SLOTS - 1, Math.max(0, prev.activeSlot + delta)),
+    }))
+  }
+
+  const setCurrentEntry = (patch: Partial<SymbolEntry>) => {
+    setSymbolQueue((prev) => {
+      const symbols = [...prev.symbols]
+      symbols[prev.activeSlot] = { ...symbols[prev.activeSlot], ...patch }
+      return { ...prev, symbols }
+    })
+  }
+
   const startTimeout = async (minutes: number, snapshot: Answers) => {
     setTimeoutUntil(Date.now() + minutes * 60_000)
-    lastVerdictRef.current = 'blocked'
+    lastVerdictBySlotRef.current[symbolQueue.activeSlot] = 'blocked'
     try {
-      await api.createBuyCheckLog({ verdict: 'blocked', answers: snapshot, note: `작전 타임 ${minutes}분` })
+      await api.createBuyCheckLog({
+        verdict: 'blocked',
+        answers: snapshot,
+        symbol: currentSymbol,
+        note: `작전 타임 ${minutes}분`,
+      })
     } catch {
       // logging must never get in the way of the checklist
     }
@@ -184,7 +297,7 @@ export function BuyChecklistPage() {
     const current = answers[item.id] ?? null
     const nextAnswer = current === clicked ? null : clicked
     const nextAnswers = { ...answers, [item.id]: nextAnswer }
-    setAnswers(nextAnswers)
+    setActiveAnswers(nextAnswers)
 
     if (item.failTimeoutMinutes && isPass(item, nextAnswer) === false) {
       const minutes = item.failTimeoutMinutes
@@ -194,7 +307,7 @@ export function BuyChecklistPage() {
       if (ok) {
         void startTimeout(minutes, nextAnswers)
       } else {
-        setAnswers((prev) => ({ ...prev, [item.id]: null })) // mis-click: undo instead of locking
+        setActiveAnswers({ ...nextAnswers, [item.id]: null }) // mis-click: undo instead of locking
       }
     }
   }
@@ -204,12 +317,10 @@ export function BuyChecklistPage() {
       if (!window.confirm('자정이 지나 매수 금지 상태입니다.\n잠금을 해제하고 오늘 체크를 새로 시작할까요?')) return
       setLocked(false)
       setSessionDate(etDateString(new Date()))
-      setAnswers({})
-      lastVerdictRef.current = 'checking'
       return
     }
     if (isLocked) return // 작전 타임 중에는 초기화 비활성화(아래 disabled)되므로 여기 도달하지 않음
-    setAnswers({})
+    setActiveAnswers({})
   }
 
   const saveSettings = async (descriptions: Record<string, string>) => {
@@ -252,6 +363,36 @@ export function BuyChecklistPage() {
         {MOTTO_LINES.map((line) => (
           <div key={line}>{line}</div>
         ))}
+      </div>
+
+      <div className="buychk-symbol-row">
+        <button type="button" onClick={() => moveSymbolSlot(-1)} disabled={symbolQueue.activeSlot === 0}>
+          ◀
+        </button>
+        <input
+          type="text"
+          className="buychk-symbol-input buychk-symbol-input-ticker"
+          placeholder="티커"
+          value={currentEntry.ticker}
+          onChange={(e) => setCurrentEntry({ ticker: e.target.value })}
+        />
+        <input
+          type="text"
+          className="buychk-symbol-input buychk-symbol-input-name"
+          placeholder="종목명"
+          value={currentEntry.name}
+          onChange={(e) => setCurrentEntry({ name: e.target.value })}
+        />
+        <button
+          type="button"
+          onClick={() => moveSymbolSlot(1)}
+          disabled={symbolQueue.activeSlot === SYMBOL_SLOTS - 1}
+        >
+          ▶
+        </button>
+        <span className="buychk-symbol-count">
+          {symbolQueue.activeSlot + 1}/{SYMBOL_SLOTS}
+        </span>
       </div>
 
       <div className="buychk-body">

@@ -99,6 +99,13 @@ class RemindNoteORM(Base):
     note_html: Mapped[str] = mapped_column(Text, default="")
 
 
+class VirtualSimNoteORM(Base):
+    __tablename__ = "virtual_sim_note"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    note_html: Mapped[str] = mapped_column(Text, default="")
+
+
 class RemindVideoORM(Base):
     __tablename__ = "remind_videos"
 
@@ -125,6 +132,22 @@ class BuyCheckLogORM(Base):
     answers_json: Mapped[str] = mapped_column(Text, default="{}")
     symbol: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class ChartPatternORM(Base):
+    """One studied pattern (concept diagram + its real-chart examples),
+    built up incrementally from the Warrior Trading chart-pattern PDF."""
+
+    __tablename__ = "chart_patterns"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    pdf_group: Mapped[str] = mapped_column(Text, default="")  # e.g. "1" from the source PDF
+    position: Mapped[int] = mapped_column(default=0)
+    concept_image_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    example_image_paths: Mapped[str] = mapped_column(Text, default="[]")  # JSON string[]
+    notes_html: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[float] = mapped_column(default=0.0)
 
 
 class OneMinNoteORM(Base):

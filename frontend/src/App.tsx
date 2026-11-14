@@ -14,6 +14,8 @@ import { RemindPage } from './components/RemindPage'
 import { OneMinComparePage } from './components/OneMinComparePage'
 import { DoNotBuyPage } from './components/DoNotBuyPage'
 import { BuyChecklistPage } from './components/BuyChecklistPage'
+import { VirtualSimPage } from './components/VirtualSimPage'
+import { ChartPatternPage } from './components/ChartPatternPage'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -23,7 +25,18 @@ const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 600
 const DEFAULT_SIDEBAR_WIDTH = 280
 
-type Tab = 'notes' | 'reference' | 'study' | 'insights' | 'live' | 'remind' | 'onemin' | 'donotbuy' | 'buychecklist'
+type Tab =
+  | 'notes'
+  | 'reference'
+  | 'study'
+  | 'insights'
+  | 'live'
+  | 'remind'
+  | 'onemin'
+  | 'donotbuy'
+  | 'buychecklist'
+  | 'virtualsim'
+  | 'chartpatterns'
 type Selection = { type: 'item' | 'category'; id: string } | null
 
 const KNOWN_TABS: Tab[] = [
@@ -36,6 +49,8 @@ const KNOWN_TABS: Tab[] = [
   'onemin',
   'donotbuy',
   'buychecklist',
+  'virtualsim',
+  'chartpatterns',
 ]
 
 function loadActiveTab(): Tab {
@@ -210,6 +225,20 @@ export default function App() {
         >
           매수 체크
         </button>
+        <button
+          type="button"
+          className={activeTab === 'virtualsim' ? 'active' : ''}
+          onClick={() => setActiveTab('virtualsim')}
+        >
+          Virtual Simul
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'chartpatterns' ? 'active' : ''}
+          onClick={() => setActiveTab('chartpatterns')}
+        >
+          차트 패턴
+        </button>
       </div>
       {activeTab === 'notes' ? (
         <div className="app-layout">
@@ -257,8 +286,12 @@ export default function App() {
         <OneMinComparePage />
       ) : activeTab === 'donotbuy' ? (
         <DoNotBuyPage onOpenPage={openInsight} />
-      ) : (
+      ) : activeTab === 'buychecklist' ? (
         <BuyChecklistPage />
+      ) : activeTab === 'virtualsim' ? (
+        <VirtualSimPage />
+      ) : (
+        <ChartPatternPage />
       )}
     </div>
   )

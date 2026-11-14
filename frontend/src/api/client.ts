@@ -142,6 +142,22 @@ export interface OneMinNote {
   created_at: number
 }
 
+export interface ChartPattern {
+  id: string
+  name: string
+  pdf_group: string
+  position: number
+  concept_image_url: string | null
+  example_image_urls: string[]
+  notes_html: string
+  created_at: number
+}
+
+export interface VirtualSimNote {
+  id: string
+  note_html: string
+}
+
 export interface BuyChecklistSettings {
   id: string
   descriptions: Record<string, string>
@@ -358,4 +374,29 @@ export const api = {
     symbol?: string | null
     note?: string | null
   }) => request<BuyCheckLogEntry>('/api/buy-checklist/log', { method: 'POST', body: JSON.stringify(payload) }),
+
+  getVirtualSimNote: () => request<VirtualSimNote>('/api/virtual-sim/note'),
+  updateVirtualSimNote: (note_html: string) =>
+    request<VirtualSimNote>('/api/virtual-sim/note', { method: 'PATCH', body: JSON.stringify({ note_html }) }),
+
+  listChartPatterns: () => request<ChartPattern[]>('/api/chart-patterns'),
+  createChartPattern: (name: string, pdf_group = '') =>
+    request<ChartPattern>('/api/chart-patterns', { method: 'POST', body: JSON.stringify({ name, pdf_group }) }),
+  updateChartPattern: (id: string, patch: { name?: string; pdf_group?: string; notes_html?: string }) =>
+    request<ChartPattern>(`/api/chart-patterns/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteChartPattern: (id: string) => request<{ ok: boolean }>(`/api/chart-patterns/${id}`, { method: 'DELETE' }),
+  uploadChartPatternConcept: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request<ChartPattern>(`/api/chart-patterns/${id}/concept-image`, { method: 'POST', body: form })
+  },
+  deleteChartPatternConcept: (id: string) =>
+    request<ChartPattern>(`/api/chart-patterns/${id}/concept-image`, { method: 'DELETE' }),
+  addChartPatternExample: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request<ChartPattern>(`/api/chart-patterns/${id}/examples`, { method: 'POST', body: form })
+  },
+  deleteChartPatternExample: (id: string, index: number) =>
+    request<ChartPattern>(`/api/chart-patterns/${id}/examples/${index}`, { method: 'DELETE' }),
 }

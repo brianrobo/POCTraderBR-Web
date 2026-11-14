@@ -2559,6 +2559,44 @@ summary.remind-mantra-row::-webkit-details-marker {
   padding-left: 18px;
 }
 
+.buychk-symbol-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.buychk-symbol-row button {
+  flex-shrink: 0;
+  padding: 6px 10px;
+}
+
+.buychk-symbol-input {
+  min-width: 0;
+  background: var(--panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: inherit;
+}
+
+.buychk-symbol-input-ticker {
+  flex: 1 1 35%;
+}
+
+.buychk-symbol-input-name {
+  flex: 1 1 65%;
+}
+
+.buychk-symbol-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 36px;
+  text-align: center;
+}
+
 .buychk-body {
   display: flex;
   flex-direction: column;
@@ -2669,4 +2707,173 @@ summary.remind-mantra-row::-webkit-details-marker {
 
 .buychk-settings-spacer {
   flex: 1;
+}
+
+/* Virtual Simul (real-data simulator research notes) */
+.virtualsim-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 900px;
+}
+
+/* Chart Pattern study tab */
+.chartpat-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.chartpat-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chartpat-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chartpat-tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+
+.chartpat-tree-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chartpat-tree-row:hover {
+  background: var(--panel-alt);
+}
+
+.chartpat-tree-row.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.chartpat-tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chartpat-tree-group {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-right: 6px;
+}
+
+
+.chartpat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.chartpat-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.chartpat-preview-pane {
+  flex: 1 1 auto;
+  min-width: 320px;
+  align-self: stretch;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.chartpat-preview-pane img {
+  max-width: 100%;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.chartpat-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1000px;
+}
+
+.chartpat-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.chartpat-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chartpat-concept-image {
+  max-width: 100%;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.chartpat-examples-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chartpat-examples-thumbs img {
+  width: 140px;
+  border-radius: 4px;
+  background: #fff;
+  display: block;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.chartpat-examples-thumbs img:hover {
+  border-color: var(--border);
+}
+
+.chartpat-examples-thumbs img.selected {
+  border-color: var(--accent);
 }

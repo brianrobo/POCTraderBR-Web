@@ -10,6 +10,7 @@ ROOT_CATEGORY_ID = "__ROOT__"
 ROOT_STUDY_PLAN_ID = "__STUDY_ROOT__"
 REMIND_NOTE_ID = "__REMIND__"
 BUY_CHECKLIST_SETTINGS_ID = "__BUY_CHECKLIST__"
+VIRTUAL_SIM_NOTE_ID = "__VIRTUAL_SIM__"
 
 
 def new_id() -> str:
@@ -151,6 +152,14 @@ class RemindNote(BaseModel):
     note_html: str = ""
 
 
+class VirtualSimNote(BaseModel):
+    """Single research note for the Virtual Simul tab (real-data trading
+    simulators to use or build) — same one-block shape as RemindNote."""
+
+    id: str
+    note_html: str = ""
+
+
 class RemindVideo(BaseModel):
     id: str
     title: str
@@ -191,6 +200,17 @@ class BuyCheckLogEntry(BaseModel):
     answers: dict[str, Optional[Literal["yes", "no"]]] = Field(default_factory=dict)
     symbol: Optional[str] = None
     note: Optional[str] = None
+
+
+class ChartPattern(BaseModel):
+    id: str
+    name: str
+    pdf_group: str = ""
+    position: int = 0
+    concept_image_url: Optional[str] = None
+    example_image_urls: List[str] = Field(default_factory=list)
+    notes_html: str = ""
+    created_at: float = Field(default_factory=now)
 
 
 class OneMinNote(BaseModel):
