@@ -16,6 +16,7 @@ import { DoNotBuyPage } from './components/DoNotBuyPage'
 import { BuyChecklistPage } from './components/BuyChecklistPage'
 import { VirtualSimPage } from './components/VirtualSimPage'
 import { ChartPatternPage } from './components/ChartPatternPage'
+import { BackupStatus } from './components/BackupStatus'
 import './App.css'
 
 const LAST_SELECTION_KEY = 'poctrader:lastSelection'
@@ -239,6 +240,7 @@ export default function App() {
         >
           차트 패턴
         </button>
+        <BackupStatus />
       </div>
       {activeTab === 'notes' ? (
         <div className="app-layout">

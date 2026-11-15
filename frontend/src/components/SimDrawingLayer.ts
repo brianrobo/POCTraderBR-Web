@@ -16,8 +16,11 @@ import { hitsShape, type Box } from '../lib/simDrawings'
 /** A drawing without its bookkeeping — also the shape being dragged out. */
 export type Shape = Pick<SimDrawing, 'kind' | 'x1' | 'y1' | 'x2' | 'y2'> & { id?: string }
 
-const COLOR: Record<SimDrawing['kind'], string> = { line: '#ffe600', rect: '#00a843', ellipse: '#ffe600' }
+const COLOR: Record<SimDrawing['kind'], string> = { line: '#ffe600', hline: '#ffe600', rect: '#00a843', ellipse: '#ffe600' }
 const HANDLE = 3
+// The price written at the right end of a horizontal line.
+const PRICE_FONT = '11px sans-serif'
+const PRICE_BACK = '#2b2b2b'
 
 /**
  * Draws the shapes on the chart's main pane. They are kept in chart
@@ -34,7 +37,8 @@ export class SimDrawingLayer implements ISeriesPrimitive<Time> {
   private readonly view: IPrimitivePaneView = {
     zOrder: () => 'top',
     renderer: (): IPrimitivePaneRenderer => ({
-      draw: (target) => target.useMediaCoordinateSpace(({ context }) => this.paint(context)),
+      draw: (target) =>
+        target.useMediaCoordinateSpace(({ context, mediaSize }) => this.paint(context, mediaSize.width)),
     }),
   }
 
@@ -80,7 +84,7 @@ export class SimDrawingLayer implements ISeriesPrimitive<Time> {
     return x1 === null || x2 === null || y1 === null || y2 === null ? null : { x1, y1, x2, y2 }
   }
 
-  private paint(ctx: CanvasRenderingContext2D): void {
+  private paint(ctx: CanvasRenderingContext2D, width: number): void {
     for (const shape of this.shapes) {
       const box = this.toPixels(shape)
       if (!box) continue
@@ -91,6 +95,9 @@ export class SimDrawingLayer implements ISeriesPrimitive<Time> {
       if (shape.kind === 'line') {
         ctx.moveTo(box.x1, box.y1)
         ctx.lineTo(box.x2, box.y2)
+      } else if (shape.kind === 'hline') {
+        ctx.moveTo(0, box.y1)
+        ctx.lineTo(width, box.y1)
       } else if (shape.kind === 'rect') {
         ctx.rect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1)
       } else {
@@ -105,6 +112,7 @@ export class SimDrawingLayer implements ISeriesPrimitive<Time> {
         )
       }
       ctx.stroke()
+      if (shape.kind === 'hline') this.paintPrice(ctx, shape.y1, box.y1, width)
       if (!picked) continue
       ctx.fillStyle = '#ffffff'
       ctx.lineWidth = 1
@@ -116,5 +124,16 @@ export class SimDrawingLayer implements ISeriesPrimitive<Time> {
         ctx.strokeRect(x - HANDLE, y - HANDLE, HANDLE * 2, HANDLE * 2)
       }
     }
+  }
+
+  private paintPrice(ctx: CanvasRenderingContext2D, price: number, y: number, width: number): void {
+    const text = this.series?.priceFormatter().format(price) ?? String(price)
+    ctx.font = PRICE_FONT
+    ctx.textBaseline = 'middle'
+    const w = ctx.measureText(text).width + 8
+    ctx.fillStyle = PRICE_BACK
+    ctx.fillRect(width - w - 2, y - 16, w, 14)
+    ctx.fillStyle = COLOR.hline
+    ctx.fillText(text, width - w + 2, y - 9)
   }
 }

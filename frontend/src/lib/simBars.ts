@@ -1,5 +1,5 @@
-// Price-bar helpers for the data-driven simulator: 30-minute candles built
-// from 1-minute bars, moving averages, and time labels. `t` is the exchange
+// Price-bar helpers for the data-driven simulator: 5- and 30-minute candles
+// built from 1-minute bars, moving averages, and time labels. `t` is the exchange
 // wall-clock time read as UTC (epoch seconds), so every clock/date here uses
 // the UTC getters.
 
@@ -20,13 +20,12 @@ const AMOUNT_DIVISOR = 70000
 /**
  * Traded amount of a bar (the export's own amount column is empty). Like the
  * HTS indicator it is worked out from the bar it is drawn on, so a 30-minute
- * candle uses its own high, low and volume rather than a sum of its minutes.
+ * (or 5-minute) candle uses its own high, low and volume rather than a sum of its minutes.
  */
 export function tradedAmount(bar: Bar): number {
   return (((bar.h + bar.l) / 2) * bar.v) / AMOUNT_DIVISOR
 }
 
-const HALF_HOUR = 1800
 // US sessions open at 04:00; overnight bars run past midnight on the previous session.
 const SESSION_START = 4 * 3600
 
@@ -35,23 +34,23 @@ export function decodeBars(rows: number[][]): Bar[] {
   return rows.map(([t, o, h, l, c, v]) => ({ t, o, h, l, c, v }))
 }
 
-/** Start time of the 30-minute candle that the time `t` falls in. */
-export function bucket30(t: number): number {
-  return t - (t % HALF_HOUR)
+/** Start time of the `span`-second candle that the time `t` falls in. */
+export function candleStart(t: number, span: number): number {
+  return t - (t % span)
 }
 
 /**
- * 30-minute candles of the 1-minute bars `bars[0..upto]`, each stamped with
- * its start time (15:30 holds 15:30–15:59, as the HTS labels them). The last
- * one is still forming unless `upto` happens to close it — nothing past
- * `upto` is looked at.
+ * `span`-second candles (300 = 5 minutes, 1800 = 30 minutes) of the 1-minute
+ * bars `bars[0..upto]`, each stamped with its start time (the 30-minute 15:30
+ * holds 15:30–15:59, as the HTS labels them). The last one is still forming
+ * unless `upto` happens to close it — nothing past `upto` is looked at.
  */
-export function aggregate30(bars: Bar[], upto: number = bars.length - 1): Bar[] {
+export function aggregate(bars: Bar[], span: number, upto: number = bars.length - 1): Bar[] {
   const out: Bar[] = []
   let cur: Bar | undefined
   for (let i = 0; i <= upto && i < bars.length; i++) {
     const b = bars[i]
-    const start = bucket30(b.t)
+    const start = candleStart(b.t, span)
     if (!cur || cur.t !== start) {
       cur = { t: start, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v }
       out.push(cur)
@@ -100,11 +99,16 @@ export function practiceStart(bars: Bar[], replayFrom: number, quizStarts: numbe
 
 /**
  * Indices of the first and last 1-minute bars, among `bars[0..upto]`, of the
- * 30-minute candle that starts at `t`; null when it has none.
+ * `span`-second candle that starts at `t`; null when it has none.
  */
-export function barsOf30(bars: Bar[], t: number, upto: number = bars.length - 1): [number, number] | null {
+export function barsOfCandle(
+  bars: Bar[],
+  t: number,
+  span: number,
+  upto: number = bars.length - 1,
+): [number, number] | null {
   const from = indexAtOrAfter(bars, t)
-  const next = indexAtOrAfter(bars, t + HALF_HOUR)
+  const next = indexAtOrAfter(bars, t + span)
   const to = Math.min(upto, (next < 0 ? bars.length : next) - 1)
   return from < 0 || to < from ? null : [from, to]
 }

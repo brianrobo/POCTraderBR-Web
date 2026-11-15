@@ -11,6 +11,7 @@ import { api, button, launch, pane, scenarioRow, sleep } from './harness.mjs'
 
 const DIR = process.argv[2]
 const SCENARIO = '__uitest 가격'
+const STOCK = '유아이테스트 홀딩스'
 const PRICE_FILE = `${DIR}/UITEST_1분봉.cdt`
 
 // Two sessions of 1-minute bars: 11/12 09:00–10:59 and 11/13 09:00–10:29.
@@ -43,9 +44,9 @@ const barTime = (t) => {
 // The line above a chart for the candle `b`.
 const readout = (b) =>
   `${barTime(b.t)} · 시 ${b.o.toFixed(4)} 고 ${b.h.toFixed(4)} 저 ${b.l.toFixed(4)} 종 ${b.c.toFixed(4)} · 거래량 ${b.v.toLocaleString('en-US')} · 거래대금 ${((((b.h + b.l) / 2) * b.v) / 70000).toFixed(2)}`
-// The 30-minute candle in progress at 1-minute bar `now`.
-const forming30 = (now) => {
-  const start = bars[now].t - (bars[now].t % 1800)
+// The 30-minute (or `span`-second) candle in progress at 1-minute bar `now`.
+const forming30 = (now, span = 1800) => {
+  const start = bars[now].t - (bars[now].t % span)
   const seen = bars.slice(0, now + 1).filter((b) => b.t >= start)
   return {
     t: start,
@@ -101,6 +102,8 @@ try {
   assert.equal(await has('.sim-add .sim-hint .sim-warn'), false)
   await app.click(`${add}.querySelector('.sim-label-input')`)
   await app.send('Input.insertText', { text: SCENARIO })
+  await app.click(`${add}.querySelector('.sim-stock-input')`)
+  await app.send('Input.insertText', { text: STOCK })
   await app.shot('b02_add_ready')
   await app.click(button(add, '시나리오 만들기'))
 
@@ -109,8 +112,39 @@ try {
   await app.waitFor(`document.querySelectorAll('.sim-chart canvas').length > 0`, 'charts')
   const scenario = (await api('GET', '/api/sim/scenarios')).find((s) => s.name === SCENARIO)
   assert.deepEqual([scenario.kind, scenario.bar_count, scenario.quiz_count], ['bars', 90, 0])
-  assert.equal(await text('.sim-head-title'), SCENARIO)
   assert.ok((await meta()).startsWith('가격 데이터 · 1분 90봉 · 퀴즈 0'))
+
+  // --- the stock's name: under the scenario name in the list, changed by double-clicking it
+  const stockLine = `${scenarioRow(SCENARIO)}.querySelector('.sim-scn-stock')`
+  const askStock = async (answer) => {
+    await app.ev(`window.prompt = (message, value) => { window.__asked = [message, value]; return ${JSON.stringify(answer)} }`)
+    await app.ev(`${stockLine}.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`)
+  }
+  const stockOf = async () => (await api('GET', '/api/sim/scenarios')).find((s) => s.id === scenario.id).stock_name
+  assert.equal(scenario.stock_name, STOCK)
+  assert.equal(await app.ev(`${stockLine}.textContent`), STOCK)
+  assert.deepEqual(
+    await app.ev(`[...${scenarioRow(SCENARIO)}.querySelector('.sim-scn').children].map((el) => el.className.trim())`),
+    ['sim-scn-name', 'sim-scn-stock', 'sim-scn-meta'],
+  )
+  assert.equal(await text('.sim-head-title'), SCENARIO + STOCK)
+  assert.equal(await text('.sim-head-stock'), STOCK)
+  await askStock(null) // cancelled
+  assert.deepEqual(await app.ev(`window.__asked`), ['종목명 (비우면 지워집니다)', STOCK])
+  await sleep(300)
+  assert.equal(await stockOf(), STOCK)
+  await askStock(` ${STOCK} 2 `)
+  await app.waitFor(`${stockLine}.textContent === ${JSON.stringify(`${STOCK} 2`)}`, 'the changed stock name')
+  await app.waitFor(`document.querySelector('.sim-head-stock').textContent === ${JSON.stringify(`${STOCK} 2`)}`, 'the head')
+  assert.equal(await stockOf(), `${STOCK} 2`)
+  await app.shot('b02a_stock_name')
+  // emptied: the selected scenario keeps the line, as the place to enter one
+  await askStock('')
+  await app.waitFor(`${stockLine}.classList.contains('empty')`, 'the empty stock line')
+  assert.equal(await app.ev(`${stockLine}.textContent`), '종목명 입력')
+  assert.equal(await stockOf(), '')
+  assert.equal(await has('.sim-head-stock'), false)
+  assert.equal(await text('.sim-head-title'), SCENARIO)
   const navCount = () => text('.sim-bar-nav .sim-nav-count')
   assert.equal(await navCount(), '121 / 210')
   assert.equal(await label(1), readout(bars[FIRST]))
@@ -155,10 +189,32 @@ try {
   await sleep(150)
   assert.equal(await kst(0), null)
 
+  // under the 1-minute chart's time axis: the frame number of every 50th bar, below that bar
+  const frameTicks = (i) =>
+    app.ev(`(() => { const h = ${pane(i)}.querySelector('.sim-chart-host').getBoundingClientRect();
+      return [...${pane(i)}.querySelectorAll('.sim-chart-frames span')].map((el) => { const r = el.getBoundingClientRect();
+        return { text: el.textContent, fx: (r.left + r.width / 2 - h.left) / h.width, below: h.bottom - r.bottom } }) })()`)
+  const ticksAreOverTheirFrames = async (last) => {
+    const ticks = await frameTicks(1)
+    const numbers = ticks.map((t) => Number(t.text))
+    assert.equal(numbers.at(-1), last, JSON.stringify(ticks)) // the next one is not on the chart yet
+    numbers.forEach((n, k) => assert.equal(n, last - 50 * (numbers.length - 1 - k), JSON.stringify(ticks)))
+    for (const tick of ticks) {
+      assert.ok(tick.below > 0 && tick.below < 40, JSON.stringify(ticks)) // inside the time axis
+      await hover(1, tick.fx, 0.4)
+      assert.equal(hoverLabel(await kst(1)).frames, tick.text)
+    }
+    await app.mouse('mouseMoved', 5, 5, { button: 'none' })
+    await sleep(150)
+  }
+  assert.deepEqual(await frameTicks(0), []) // not on the left chart, whose candles hold many frames
+  await ticksAreOverTheirFrames(100)
+
   // ▶: a click is one bar; held down it keeps stepping, and stops on release
   const forward = button(`document.querySelector('.sim-bar-nav')`, '▶')
   await app.click(forward)
   assert.equal(await navCount(), '122 / 210')
+  await ticksAreOverTheirFrames(100) // the number moved along with its bar
   const release = await press(forward)
   await sleep(1000)
   await release()
@@ -256,6 +312,10 @@ try {
   assert.deepEqual(await quizzes(), [[bars[FROM].t, bars[QUIZ].t]])
 
   // the answer and the note
+  await app.click(button(`${editor}.querySelector('.sim-quiz-outcome')`, '상승 안 함 (매수 안 함)'))
+  await app.waitFor(`document.querySelector('.sim-quiz-editor').textContent.includes('125~134 상승 안 함')`, 'the other answer')
+  await sleep(300)
+  assert.deepEqual((await api('GET', `/api/sim/scenarios/${scenario.id}/bars`)).quizzes.map((q) => q.outcome), ['loss'])
   await app.click(button(`${editor}.querySelector('.sim-quiz-outcome')`, '상승'))
   await app.click(`document.querySelector('.sim-quiz-note')`)
   await app.send('Input.insertText', { text: '눌림 후 재돌파' })
@@ -280,6 +340,27 @@ try {
   await app.click(`document.querySelector('.sim-lower-toggle')`)
   assert.equal(await text('.sim-lower-toggle'), lowerName)
 
+  // the left chart switches between 30-minute and 5-minute candles, both built from the 1-minute bars
+  const pick = `${pane(0)}.querySelector('.sim-candle-pick')`
+  const picked = () => app.ev(`${pick}.querySelector('button.active').textContent`)
+  assert.equal(await picked(), '30분봉')
+  assert.equal(await app.ev(`!!${pane(1)}.querySelector('.sim-candle-pick')`), false) // the right chart stays 1-minute
+  await right(7)
+  assert.equal(await navCount(), '128 / 210')
+  await app.click(button(pick, '5분봉'))
+  await app.waitFor(`${pane(0)}.querySelectorAll('.sim-chart canvas').length > 0`, '5-minute chart')
+  assert.equal(await picked(), '5분봉')
+  assert.equal(await label(0), readout(forming30(FIRST + 7, 300))) // 09:05–09:07 so far
+  assert.equal(await label(1), readout(bars[FIRST + 7]))
+  await right(3)
+  assert.equal(await label(0), readout(forming30(FIRST + 10, 300))) // the next candle, 09:10
+  await sleep(300)
+  await app.shot('b04b_editor_5min')
+  await app.click(button(pick, '30분봉'))
+  assert.equal(await picked(), '30분봉')
+  assert.equal(await label(0), readout(forming30(FIRST + 10)))
+  await app.click(button(`document.querySelector('.sim-body')`, '11/13'))
+
   // --- drawing on the 1-minute chart (the editor is at bar FIRST again)
   assert.equal(await navCount(), '121 / 210')
   assert.equal(await app.ev(`!!${pane(0)}.querySelector('.sim-draw-tools')`), false) // not on the 30-minute chart
@@ -289,6 +370,15 @@ try {
   const px = (f) => host.x + host.w * f
   const py = (f) => host.y + host.h * f
   const drawings = async () => (await api('GET', `/api/sim/scenarios/${scenario.id}/bars`)).drawings
+  // The shapes once the server holds `count` of them: a change is saved in the background.
+  const saved = async (count) => {
+    const t0 = Date.now()
+    for (;;) {
+      const list = await drawings()
+      if (list.length === count || Date.now() - t0 > 3000) return list
+      await sleep(100)
+    }
+  }
   const canDelete = async () => !(await app.ev(`${button(tools, '삭제')}.disabled`))
   // How many shapes "모두 지우기" would remove, without removing them.
   const shown = async () => {
@@ -326,7 +416,7 @@ try {
   assert.equal(await canDelete(), false)
   await draw('원', 0.5, 0.15, 0.62, 0.4)
   await draw('선', 0.1, 0.55, 0.25, 0.35)
-  let drawn = await drawings()
+  let drawn = await saved(3)
   assert.deepEqual(drawn.map((d) => [d.kind, d.at]), [['rect', FIRST], ['ellipse', FIRST], ['line', FIRST]])
   const [rect] = drawn
   assert.ok(rect.x1 < rect.x2 && rect.y1 > rect.y2, JSON.stringify(rect)) // dragged right and down
@@ -345,14 +435,12 @@ try {
   await clickChart(px(0.175), py(0.45))
   assert.equal(await canDelete(), true)
   await app.key('Delete', 46)
-  await sleep(250)
-  assert.deepEqual((await drawings()).map((d) => d.kind), ['rect', 'ellipse'])
+  assert.deepEqual((await saved(2)).map((d) => d.kind), ['rect', 'ellipse'])
   assert.equal(await canDelete(), false)
   await clickChart(px(0.62), py(0.275))
   assert.equal(await canDelete(), true)
   await app.click(button(tools, '삭제'))
-  await sleep(250)
-  assert.deepEqual((await drawings()).map((d) => d.id), [rect.id])
+  assert.deepEqual((await saved(1)).map((d) => d.id), [rect.id])
   // a stray click with a tool draws nothing; Esc puts the tool down
   await app.click(button(tools, '선'))
   await drag(px(0.7), py(0.3), px(0.7) + 2, py(0.3) + 1)
@@ -384,16 +472,42 @@ try {
   assert.equal(await canDelete(), false)
   // the width of a bar after the zoom, measured with a new shape (drawn at bar FIRST + 10)
   await draw('원', 0.55, 0.15, 0.7, 0.4)
-  drawn = await drawings()
+  drawn = await saved(2)
   const zoomedWidth = (host.w * 0.15) / (drawn[1].x2 - drawn[1].x1)
   assert.ok(zoomedWidth > barWidth * 1.3, `bar width ${barWidth} -> ${zoomedWidth}`)
   await clickChart(left + (rect.x2 - rect.x1) * zoomedWidth, py(0.35))
   assert.equal(await canDelete(), true) // the rectangle grew with the chart
   await draw('선', 0.75, 0.3, 0.88, 0.45)
-  assert.deepEqual((await drawings()).map((d) => [d.kind, d.at]), [['rect', FIRST], ['ellipse', FIRST + 10], ['line', FIRST + 10]])
+  assert.deepEqual((await saved(3)).map((d) => [d.kind, d.at]), [['rect', FIRST], ['ellipse', FIRST + 10], ['line', FIRST + 10]])
   assert.equal(await shown(), 3)
   await sleep(200)
   await app.shot('b04c_zoomed')
+
+  // a horizontal line is placed with one click, and is picked anywhere along its price
+  await app.click(button(tools, '수평선'))
+  assert.equal(await app.ev(`${button(tools, '수평선')}.className`), 'active')
+  await drag(px(0.5), py(0.7), px(0.5), py(0.7)) // on the volume: no price there
+  assert.equal(await has('.sim-draw-layer'), true)
+  assert.equal((await drawings()).length, 3)
+  await drag(px(0.5), py(0.55), px(0.5), py(0.55))
+  assert.equal(await has('.sim-draw-layer'), false)
+  drawn = await saved(4)
+  const flat = drawn[3]
+  assert.deepEqual([flat.kind, flat.at], ['hline', FIRST + 10])
+  assert.ok(flat.x1 === flat.x2 && flat.y1 === flat.y2, JSON.stringify(flat))
+  assert.ok(flat.y1 < rect.y2 && flat.y1 > 3, JSON.stringify(flat)) // below the rectangle
+  assert.equal(await canDelete(), true)
+  await sleep(200)
+  await app.shot('b04d_hline')
+  await app.key('Escape', 27)
+  assert.equal(await canDelete(), false)
+  await clickChart(px(0.05), py(0.55) - 12)
+  assert.equal(await canDelete(), false)
+  await clickChart(px(0.05), py(0.55))
+  assert.equal(await canDelete(), true)
+  await app.key('Delete', 46)
+  assert.deepEqual((await saved(3)).map((d) => d.kind), ['rect', 'ellipse', 'line'])
+  assert.equal(await shown(), 3)
 
   // --- practice
   await app.click(button(`document.querySelector('.sim-head')`, '연습'))
@@ -441,6 +555,7 @@ try {
   assert.equal(await has('.sim-question'), true)
   assert.equal(await has('.sim-run-note'), false)
   assert.ok((await text('.sim-question')).startsWith('이후 가격이 상승할까요?'))
+  assert.ok((await text('.sim-question')).includes('상승 안 함 (매수 안 함)'))
   assert.equal(await shown(), 3) // the shapes drawn at bar FIRST + 10 have appeared
   await sleep(300)
   await app.shot('b06_practice_quiz')
@@ -469,6 +584,7 @@ try {
   assert.equal(await label(1), readout(bars.at(-1)))
   assert.equal(await label(0), readout(forming30(bars.length - 1)))
   await sleep(300)
+  await ticksAreOverTheirFrames(200) // file frame numbers in practice too
   await app.shot('b07_practice_end')
 
   await app.click(button(`document.querySelector('.sim-practice-bar')`, '처음부터 다시'))
@@ -478,8 +594,7 @@ try {
   assert.equal(await shown(), 1)
   await app.ev(`window.__yes = true`)
   await app.click(button(tools, '모두 지우기'))
-  await sleep(250)
-  assert.deepEqual((await drawings()).map((d) => d.at), [FIRST + 10, FIRST + 10, FIRST + 14])
+  assert.deepEqual((await saved(3)).map((d) => d.at), [FIRST + 10, FIRST + 10, FIRST + 14])
   assert.equal(await shown(), 0)
   data = await api('GET', `/api/sim/scenarios/${scenario.id}/bars`)
   assert.deepEqual(data.attempts.map((a) => [a.answer, a.result]), [['buy', 'correct']])
@@ -490,6 +605,138 @@ try {
   await app.waitFor(scenarioRow(SCENARIO), 'scenario row')
   await app.click(scenarioRow(SCENARIO))
   await app.waitFor(`document.querySelector('.sim-practice-bar')`, 'practice view on open')
+
+  // --- "My Insight": a quiz's insight drawn on the 1-minute chart
+  const toggle = `${pane(1)}.querySelector('.sim-insight-toggle')`
+  const insightButton = () => app.ev(`(() => { const b = ${toggle}; return [b.disabled, b.className.includes('active'), b.title] })()`)
+  const notes = () => app.ev(`[...document.querySelectorAll('.sim-insight-notes li')].map((li) => li.textContent)`)
+  const openScenario = async () => {
+    await app.send('Page.reload')
+    await sleep(500)
+    await app.waitFor(scenarioRow(SCENARIO), 'scenario row')
+    await app.click(scenarioRow(SCENARIO))
+    await app.waitFor(`document.querySelector('.sim-practice-bar')`, 'practice view on open')
+  }
+  assert.equal(await app.ev(`!!${pane(0)}.querySelector('.sim-insight-toggle')`), false) // only on the 1-minute chart
+  assert.deepEqual(await insightButton(), [true, false, '이 시나리오의 퀴즈에 등록된 해석이 없습니다'])
+  const INSIGHT_NOTES = ['① 126~130 구간의 설명', '② 134에서 판단 → 이후 상승']
+  await api('PUT', `/api/sim/bar-quizzes/${data.quizzes[0].id}/insight`, {
+    zones: [{ start: FROM + 2, end: FROM + 6, text: '① 구간' }],
+    levels: [{ price: bars[FROM + 4].c, start: FROM + 5, end: QUIZ + 20, text: '자리' }],
+    vlines: [{ frame: QUIZ + 1, text: '② 판단' }],
+    marks: [{ frame: QUIZ + 3, text: '이후', side: 'below' }],
+    notes: INSIGHT_NOTES,
+  })
+  await openScenario()
+  // in practice it is kept back until its quiz has been answered
+  assert.deepEqual(await insightButton(), [true, false, '해석이 있는 퀴즈에 답한 뒤에 볼 수 있습니다'])
+  await right(9)
+  assert.equal(await runCount(), '134 / 210')
+  assert.equal((await insightButton())[0], true)
+  await app.click(button(`document.querySelector('.sim-question')`, '상승'))
+  await app.waitFor(`!document.querySelector('.sim-question')`, 'question to close')
+  assert.deepEqual(await insightButton(), [false, false, '프레임 125~134 퀴즈의 해석을 차트에 표시합니다'])
+  assert.deepEqual(await notes(), [])
+  await app.click(toggle)
+  assert.deepEqual((await insightButton()).slice(0, 2), [false, true])
+  assert.deepEqual(await notes(), INSIGHT_NOTES)
+  assert.equal(await has('.sim-panes.insight-on'), true)
+  assert.equal(await runCount(), '134 / 210') // the run stays where it is
+  await right(4)
+  assert.equal(await runCount(), '138 / 210')
+  await sleep(300)
+  await app.shot('b08_insight_practice')
+  await app.click(toggle)
+  assert.deepEqual((await insightButton()).slice(0, 2), [false, false])
+  assert.deepEqual(await notes(), [])
+  assert.equal(await has('.sim-panes.insight-on'), false)
+  // a new run has answered nothing yet
+  await app.click(toggle)
+  await app.click(button(`document.querySelector('.sim-practice-bar')`, '처음부터 다시'))
+  assert.equal((await insightButton())[0], true)
+  assert.deepEqual(await notes(), [])
+
+  // in the editor it goes on to the last bar the insight covers — 30 bars past the quiz range — and picks the quiz
+  await app.click(button(`document.querySelector('.sim-head')`, '편집'))
+  await app.waitFor(`document.querySelector('.sim-quiz-editor')`, 'editor')
+  assert.equal(await text('.sim-bar-nav .sim-nav-count'), '125 / 210')
+  assert.deepEqual(await insightButton(), [false, false, '프레임 125~134 퀴즈의 해석을 차트에 표시합니다'])
+  await app.click(toggle)
+  assert.equal(await text('.sim-bar-nav .sim-nav-count'), '164 / 210')
+  assert.deepEqual(await notes(), INSIGHT_NOTES)
+  assert.equal(await app.ev(`${button(`document.querySelector('.sim-quiz-editor')`, '125~134 상승')}.className`), 'active')
+  await sleep(300)
+  await app.shot('b09_insight_editor')
+  await app.click(toggle)
+  assert.deepEqual(await notes(), [])
+  assert.equal(await text('.sim-bar-nav .sim-nav-count'), '164 / 210')
+  // without the insight the button has nothing to show
+  await api('DELETE', `/api/sim/bar-quizzes/${data.quizzes[0].id}/insight`)
+  await openScenario()
+  assert.deepEqual(await insightButton(), [true, false, '이 시나리오의 퀴즈에 등록된 해석이 없습니다'])
+
+  // --- the divider between the two charts: dragged to resize them, remembered, double-clicked for the default widths
+  const splitter = `document.querySelector('.sim-splitter')`
+  const widths = async () => [(await app.rectOf(pane(0))).w, (await app.rectOf(pane(1))).w]
+  const dragSplitter = async (dx) => {
+    const r = await app.rectOf(splitter)
+    const x = r.x + r.w / 2
+    const y = r.y + r.h / 2
+    await app.mouse('mouseMoved', x, y, { button: 'none' })
+    await app.mouse('mousePressed', x, y, { clickCount: 1 })
+    for (let i = 1; i <= 4; i++) await app.mouse('mouseMoved', x + (dx * i) / 4, y)
+    await app.mouse('mouseReleased', x + dx, y, { clickCount: 1 })
+    await sleep(200)
+  }
+  const near = (a, b) => Math.abs(a - b) <= 2
+  await app.ev(`localStorage.removeItem('sim.split')`)
+  await openScenario()
+  const [even0, even1] = await widths()
+  assert.ok(near(even0, even1), `even at first: ${even0} / ${even1}`)
+  await dragSplitter(-150)
+  let [w0, w1] = await widths()
+  assert.ok(near(w0, even0 - 150) && near(w1, even1 + 150), `after the drag: ${w0} / ${w1}`)
+  assert.equal(await app.ev(`${splitter}.className`), 'sim-splitter') // released
+  await sleep(300)
+  {
+    // the frame numbers stay under their bars when the chart is given another width
+    const ticks = await frameTicks(1)
+    assert.ok(ticks.length > 0)
+    for (const tick of ticks) {
+      await hover(1, tick.fx, 0.4)
+      assert.equal(hoverLabel(await kst(1)).frames, tick.text)
+    }
+    await app.mouse('mouseMoved', 5, 5, { button: 'none' })
+    await sleep(150)
+  }
+  await app.shot('b10_split')
+  await openScenario() // remembered
+  assert.deepEqual((await widths()).map(Math.round), [w0, w1].map(Math.round))
+  await app.click(button(`document.querySelector('.sim-head')`, '편집')) // the editor shares it
+  await app.waitFor(`document.querySelector('.sim-quiz-editor')`, 'editor')
+  assert.ok(near((await widths())[0], w0))
+  await dragSplitter(-2000) // no narrower than 15% of the row
+  ;[w0, w1] = await widths()
+  const row = (await app.rectOf(`document.querySelector('.sim-panes')`)).w
+  assert.ok(near(w0, row * 0.15), `narrowest: ${w0} of ${row}`)
+  await dragSplitter(4000) // nor wider than 85%
+  ;[w0, w1] = await widths()
+  assert.ok(near(w0, row * 0.85), `widest: ${w0} of ${row}`)
+  {
+    const r = await app.rectOf(splitter)
+    const x = r.x + r.w / 2
+    const y = r.y + r.h / 2
+    await app.mouse('mousePressed', x, y, { clickCount: 1 })
+    await app.mouse('mouseReleased', x, y, { clickCount: 1 })
+    await app.mouse('mousePressed', x, y, { clickCount: 2 })
+    await app.mouse('mouseReleased', x, y, { clickCount: 2 })
+    await sleep(200)
+  }
+  ;[w0, w1] = await widths()
+  assert.ok(near(w0, w1), `even again: ${w0} / ${w1}`)
+  assert.equal(await app.ev(`localStorage.getItem('sim.split')`), null)
+  await app.click(button(`document.querySelector('.sim-head')`, '연습'))
+  await app.waitFor(`document.querySelector('.sim-practice-bar')`, 'practice view')
 
   // --- delete from the editor
   await app.click(button(`document.querySelector('.sim-head')`, '편집'))

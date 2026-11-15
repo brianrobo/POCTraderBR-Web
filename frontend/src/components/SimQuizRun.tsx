@@ -35,10 +35,13 @@ export const BUY_WORDING: QuizWording = {
 /** Will price rise from here? — the quiz ranges of a price-data scenario. */
 export const RISE_WORDING: QuizWording = {
   question: '이후 가격이 상승할까요?',
-  answer: { buy: '상승', skip: '하락' },
-  outcome: { profit: '이후 상승', loss: '이후 하락' },
-  ungraded: '정답이 아직 지정되지 않았습니다 (편집에서 상승/하락을 지정하세요).',
+  answer: { buy: '상승', skip: '상승 안 함 (매수 안 함)' },
+  outcome: { profit: '이후 상승', loss: '이후 상승 안 함' },
+  ungraded: '정답이 아직 지정되지 않았습니다 (편집에서 상승 / 상승 안 함을 지정하세요).',
 }
+
+/** The answers as marked on a chart bar, where the full names are too long. */
+export const RISE_MARK: Record<SimAnswer, string> = { buy: '상승', skip: '상승 안 함' }
 
 export interface QuizReview {
   index: number

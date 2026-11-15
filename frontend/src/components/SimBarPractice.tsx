@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { api, type SimBarData, type SimDrawing } from '../api/client'
 import { aftermath, decodeBars, practiceStart } from '../lib/simBars'
+import type { QuizInsight } from '../lib/simInsight'
 import type { ChartMark } from './SimBarChart'
 import { AftermathLine, SimBarPanes } from './SimBarPanes'
-import { PLAIN_STEP, QuizRunBar, QuizRunPanels, RISE_WORDING, useQuizRun, type QuizStep } from './SimQuizRun'
+import { PLAIN_STEP, QuizRunBar, QuizRunPanels, RISE_MARK, RISE_WORDING, useQuizRun, type QuizStep } from './SimQuizRun'
 
 interface Props {
   data: SimBarData
@@ -60,12 +61,20 @@ export function SimBarPractice({ data, updateData, onAttempt }: Props) {
       data.quizzes.map((q): ChartMark => {
         const choice = answers[q.id]
         return choice
-          ? { t: q.bar_time, text: RISE_WORDING.answer[choice], kind: choice }
+          ? { t: q.bar_time, text: RISE_MARK[choice], kind: choice }
           : { t: q.bar_time, text: '?', kind: 'quiz' }
       }),
     [data.quizzes, answers],
   )
   const ranges = useMemo(() => data.quizzes.map((q) => ({ from: q.start_time, to: q.bar_time })), [data.quizzes])
+  // "My Insight" draws the insight of the last quiz answered in this run —
+  // never one still to be answered, which it would give away.
+  const quizInsight = useMemo((): QuizInsight | null => {
+    const shown = data.quizzes.findLast((q) => q.insight && answers[q.id])
+    if (!shown?.insight) return null
+    const indexOf = (t: number) => Math.max(0, bars.findIndex((b) => b.t === t))
+    return { quizId: shown.id, from: indexOf(shown.start_time), to: indexOf(shown.bar_time), insight: shown.insight }
+  }, [bars, data.quizzes, answers])
 
   const setDrawings = (next: SimDrawing[]) => {
     updateData((d) => ({ ...d, drawings: next }))
@@ -85,6 +94,12 @@ export function SimBarPractice({ data, updateData, onAttempt }: Props) {
         ranges={ranges}
         drawings={data.drawings}
         onDrawings={setDrawings}
+        insight={quizInsight}
+        insightHint={
+          data.quizzes.some((q) => q.insight)
+            ? '해석이 있는 퀴즈에 답한 뒤에 볼 수 있습니다'
+            : '이 시나리오의 퀴즈에 등록된 해석이 없습니다'
+        }
       />
       <QuizRunBar
         run={run}

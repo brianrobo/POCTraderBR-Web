@@ -99,13 +99,6 @@ class RemindNoteORM(Base):
     note_html: Mapped[str] = mapped_column(Text, default="")
 
 
-class VirtualSimNoteORM(Base):
-    __tablename__ = "virtual_sim_note"
-
-    id: Mapped[str] = mapped_column(primary_key=True)
-    note_html: Mapped[str] = mapped_column(Text, default="")
-
-
 class RemindVideoORM(Base):
     __tablename__ = "remind_videos"
 
@@ -161,6 +154,7 @@ class SimScenarioORM(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(Text)
+    stock_name: Mapped[str] = mapped_column(Text, default="")  # the stock's name, shown under `name`
     kind: Mapped[str] = mapped_column(Text, default="frames")  # frames/bars
     position: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[float] = mapped_column(default=0.0)
@@ -227,6 +221,8 @@ class SimBarQuizORM(Base):
     bar_time: Mapped[int] = mapped_column(default=0)
     outcome: Mapped[str] = mapped_column(Text, default="")  # ''/profit/loss — whether price rose afterwards
     note: Mapped[str] = mapped_column(Text, default="")
+    # JSON of the reading drawn on the chart by "My Insight" ('' when there is none) — see models.SimQuizInsight.
+    insight_json: Mapped[str] = mapped_column(Text, default="")
 
 
 class SimBarAttemptORM(Base):
@@ -237,6 +233,42 @@ class SimBarAttemptORM(Base):
     scenario_id: Mapped[str] = mapped_column(ForeignKey("sim_scenarios.id"))
     quiz_id: Mapped[str] = mapped_column(ForeignKey("sim_bar_quizzes.id"))
     answer: Mapped[str] = mapped_column(Text)  # buy/skip
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
+class InsightNodeORM(Base):
+    """One node of the insight map: a tree of what the simulator quizzes
+    taught, gathered until common rules show. A node is a grouping, a rule, or
+    both — whatever has children groups them."""
+
+    __tablename__ = "insight_nodes"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    parent_id: Mapped[Optional[str]] = mapped_column(ForeignKey("insight_nodes.id"), nullable=True)
+    position: Mapped[int] = mapped_column(default=0)  # order among its siblings
+    kind: Mapped[str] = mapped_column(Text, default="")  # ''/buy/avoid/wait
+    status: Mapped[str] = mapped_column(Text, default="candidate")  # candidate/confirmed/dropped
+    description: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[float] = mapped_column(default=0.0)
+
+
+class InsightEvidenceORM(Base):
+    """A simulator quiz that an insight node rests on — or one that went
+    against it ('counter')."""
+
+    __tablename__ = "insight_evidence"
+    __table_args__ = (
+        Index("ix_insight_evidence_node", "node_id"),
+        Index("ix_insight_evidence_quiz", "quiz_id"),
+    )
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    node_id: Mapped[str] = mapped_column(ForeignKey("insight_nodes.id"))
+    scenario_id: Mapped[str] = mapped_column(ForeignKey("sim_scenarios.id"))
+    quiz_id: Mapped[str] = mapped_column(ForeignKey("sim_bar_quizzes.id"))
+    stance: Mapped[str] = mapped_column(Text, default="support")  # support/counter
+    comment: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[float] = mapped_column(default=0.0)
 
 

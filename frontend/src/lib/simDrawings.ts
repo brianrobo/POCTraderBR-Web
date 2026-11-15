@@ -23,10 +23,11 @@ function distanceToSegment(box: Box, x: number, y: number): number {
 /**
  * Whether the point is on the shape's outline, within `tolerance`. The inside
  * of a rectangle or ellipse does not count, so the candles under it stay
- * clickable.
+ * clickable. A horizontal line is hit anywhere along its price.
  */
 export function hitsShape(kind: SimDrawingKind, box: Box, x: number, y: number, tolerance = HIT_TOLERANCE): boolean {
   if (kind === 'line') return distanceToSegment(box, x, y) <= tolerance
+  if (kind === 'hline') return Math.abs(y - box.y1) <= tolerance
 
   const left = Math.min(box.x1, box.x2)
   const right = Math.max(box.x1, box.x2)

@@ -8,37 +8,51 @@ import { SimScenarioAdd } from './SimScenarioAdd'
 
 type Mode = 'edit' | 'practice'
 
+interface Props {
+  /** A quiz to open the page on, in its scenario's editor (set when coming from the insight map). */
+  open?: { scenarioId: string; quizId: string } | null
+}
+
 // Simulator: each scenario replays one day's chart flow, 30-minute chart on
 // the left and 1-minute chart on the right, one candle step at a time. A
 // scenario is normally made from an exported price file (the charts are drawn
 // from the bars); one captured from chart screenshots works the same way.
 // 편집 sets it up — replay start / frames, quiz points — and 연습 replays it,
 // stopping at each quiz point for a buy / pass decision.
-export function SimulatorPage() {
+export function SimulatorPage({ open }: Props) {
   const [scenarios, setScenarios] = useState<SimScenario[]>([])
   const [detail, setDetail] = useState<SimScenarioDetail | null>(null)
   // The price bars of the selected scenario, when it is a 'bars' one.
   const [barData, setBarData] = useState<SimBarData | null>(null)
   const [mode, setMode] = useState<Mode>('edit')
+  // The quiz the editor opens on, when the scenario was opened for one.
+  const [openQuizId, setOpenQuizId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const refreshList = useCallback(() => api.listSimScenarios().then(setScenarios), [])
 
-  useEffect(() => {
-    refreshList().then(() => setLoading(false))
-  }, [refreshList])
-
-  const select = async (id: string) => {
+  const select = async (id: string, quizId: string | null = null) => {
     const loaded = await api.getSimScenario(id)
     const bars = loaded.kind === 'bars' ? await api.getSimBars(id) : null
     setAdding(false)
     setBarData(bars)
     setDetail(loaded)
+    setOpenQuizId(quizId)
     // A scenario that already has quiz points opens in practice mode, so the
-    // editor (which shows every frame) doesn't give the answers away.
-    setMode(loaded.quiz_count > 0 ? 'practice' : 'edit')
+    // editor (which shows every frame) doesn't give the answers away — unless
+    // it was opened to look at one of its quizzes.
+    setMode(loaded.quiz_count > 0 && !quizId ? 'practice' : 'edit')
   }
+
+  useEffect(() => {
+    refreshList()
+      // The scenario may be gone by now; the list is shown either way.
+      .then(() => (open ? select(open.scenarioId, open.quizId).catch(() => undefined) : undefined))
+      .then(() => setLoading(false))
+    // Only what the page was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshList])
 
   const reload = async () => {
     if (!detail) return
@@ -62,9 +76,19 @@ export function SimulatorPage() {
   const renameScenario = async (s: SimScenario) => {
     const name = window.prompt('시나리오 이름 변경', s.name)
     if (!name || name === s.name) return
-    await api.renameSimScenario(s.id, name)
+    await api.updateSimScenario(s.id, { name })
     await refreshList()
     if (detail?.id === s.id) setDetail({ ...detail, name })
+  }
+
+  const renameStock = async (s: SimScenario) => {
+    const entered = window.prompt('종목명 (비우면 지워집니다)', s.stock_name)
+    if (entered === null) return
+    const stock_name = entered.trim()
+    if (stock_name === s.stock_name) return
+    await api.updateSimScenario(s.id, { stock_name })
+    await refreshList()
+    if (detail?.id === s.id) setDetail({ ...detail, stock_name })
   }
 
   const deleteScenario = async () => {
@@ -109,6 +133,19 @@ export function SimulatorPage() {
                   >
                     {s.name}
                   </span>
+                  {/* The stock's name; a scenario without one offers the line while it is selected. */}
+                  {(s.stock_name || (!adding && detail?.id === s.id)) && (
+                    <span
+                      className={`sim-scn-stock ${s.stock_name ? '' : 'empty'}`}
+                      title="더블클릭하여 종목명 변경"
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        renameStock(s)
+                      }}
+                    >
+                      {s.stock_name || '종목명 입력'}
+                    </span>
+                  )}
                   <span className="sim-scn-meta">
                     {s.kind === 'bars'
                       ? `가격 데이터 · 1분 ${s.bar_count}봉`
@@ -136,7 +173,10 @@ export function SimulatorPage() {
         ) : (
           <>
             <div className="sim-head">
-              <h2 className="sim-head-title">{detail.name}</h2>
+              <h2 className="sim-head-title">
+                {detail.name}
+                {detail.stock_name && <span className="sim-head-stock">{detail.stock_name}</span>}
+              </h2>
               <button type="button" className={mode === 'practice' ? 'active' : ''} onClick={() => setMode('practice')}>
                 연습
               </button>
@@ -151,7 +191,13 @@ export function SimulatorPage() {
             </div>
             {barData ? (
               mode === 'edit' ? (
-                <SimBarEditor key={detail.id} data={barData} updateData={updateBarData} onListChanged={refreshList} />
+                <SimBarEditor
+                  key={detail.id}
+                  data={barData}
+                  updateData={updateBarData}
+                  onListChanged={refreshList}
+                  initialQuiz={openQuizId}
+                />
               ) : (
                 <SimBarPractice key={detail.id} data={barData} updateData={updateBarData} onAttempt={refreshList} />
               )

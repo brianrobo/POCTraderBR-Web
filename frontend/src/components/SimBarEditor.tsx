@@ -1,6 +1,15 @@
-import { useMemo, useState, type FormEvent } from 'react'
-import { api, type SimBarData, type SimBarQuiz, type SimDrawing, type SimOutcome } from '../api/client'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  api,
+  type InsightMap,
+  type SimBarData,
+  type SimBarQuiz,
+  type SimDrawing,
+  type SimOutcome,
+} from '../api/client'
 import { aftermath, decodeBars, formatBarTime, indexAtOrAfter, practiceStart, sessionStarts } from '../lib/simBars'
+import type { QuizInsight } from '../lib/simInsight'
+import { InsightLinker } from './InsightLinker'
 import type { ChartMark } from './SimBarChart'
 import { AftermathLine, SimBarPanes } from './SimBarPanes'
 import { SimFrameNav, useArrowKeys } from './SimFrameNav'
@@ -9,15 +18,18 @@ interface Props {
   data: SimBarData
   updateData: (fn: (d: SimBarData) => SimBarData) => void
   onListChanged: () => void
+  /** The quiz to open on (picked, and shown at its last bar) instead of the practice start. */
+  initialQuiz?: string | null
 }
 
 const OUTCOMES: { value: SimOutcome; label: string }[] = [
   { value: 'profit', label: '상승' },
-  { value: 'loss', label: '하락' },
+  { value: 'loss', label: '상승 안 함 (매수 안 함)' },
   { value: '', label: '미정' },
 ]
 
-const OUTCOME_NAME: Record<SimOutcome, string> = { profit: '상승', loss: '하락', '': '미정' }
+// The short names, for the quiz list and the mark on the chart.
+const OUTCOME_NAME: Record<SimOutcome, string> = { profit: '상승', loss: '상승 안 함', '': '미정' }
 
 interface RangeFormProps {
   /** Frame numbers the fields start with; empty for a new quiz. */
@@ -80,7 +92,7 @@ function RangeForm({ from, to, count, now, submit, onSubmit }: RangeFormProps) {
 // before the question, or a single bar — and where the replay starts while
 // there are none. Browsing here shows the chart up to the chosen bar, exactly
 // as practice will.
-export function SimBarEditor({ data, updateData, onListChanged }: Props) {
+export function SimBarEditor({ data, updateData, onListChanged, initialQuiz = null }: Props) {
   const bars = useMemo(() => decodeBars(data.bars), [data.bars])
   const replayStart = Math.max(0, indexAtOrAfter(bars, data.replay_from))
   const runStart = useMemo(
@@ -92,10 +104,21 @@ export function SimBarEditor({ data, updateData, onListChanged }: Props) {
       ),
     [bars, data.replay_from, data.quizzes],
   )
-  const [pos, setPos] = useState(runStart)
+  const [pos, setPos] = useState(() => {
+    const opened = data.quizzes.find((q) => q.id === initialQuiz)
+    const at = opened ? bars.findIndex((b) => b.t === opened.bar_time) : -1
+    return at >= 0 ? at : runStart
+  })
   const index = Math.max(0, Math.min(pos, bars.length - 1))
-  const [picked, setPicked] = useState<string | null>(null)
+  const [picked, setPicked] = useState<string | null>(initialQuiz)
   const [error, setError] = useState('')
+  // The insight map, for the nodes the picked quiz is filed under.
+  const [insights, setInsights] = useState<InsightMap | null>(null)
+  const refreshInsights = useCallback(() => api.getInsightMap().then(setInsights), [])
+
+  useEffect(() => {
+    void refreshInsights()
+  }, [refreshInsights])
 
   useArrowKeys((delta) => setPos(Math.max(0, Math.min(index + delta, bars.length - 1))))
 
@@ -107,16 +130,29 @@ export function SimBarEditor({ data, updateData, onListChanged }: Props) {
   )
   const ranges = useMemo(() => data.quizzes.map((q) => ({ from: q.start_time, to: q.bar_time })), [data.quizzes])
 
+  // The quiz being edited: the one picked from the list, or the one whose range the current bar is in.
+  const nowTime = bars[index]?.t ?? 0
+  const quiz =
+    data.quizzes.find((q) => q.id === picked) ??
+    data.quizzes.find((q) => q.start_time <= nowTime && nowTime <= q.bar_time)
+  // What "My Insight" draws: that quiz's insight, or the first one there is.
+  const quizInsight = useMemo((): QuizInsight | null => {
+    const shown = quiz?.insight ? quiz : data.quizzes.find((q) => q.insight)
+    if (!shown?.insight) return null
+    return {
+      quizId: shown.id,
+      from: indexOfTime.get(shown.start_time) ?? 0,
+      to: indexOfTime.get(shown.bar_time) ?? 0,
+      insight: shown.insight,
+    }
+  }, [quiz, data.quizzes, indexOfTime])
+
   if (bars.length === 0) return <div className="empty-state">가격 데이터가 없습니다.</div>
 
   const bar = bars[index]
   const last = bars.length - 1
   const session = sessions.findLast((s) => s.index <= index)
   const frameOf = (t: number) => (indexOfTime.get(t) ?? 0) + 1
-
-  // The quiz being edited: the one picked from the list, or the one whose range the current bar is in.
-  const quiz =
-    data.quizzes.find((q) => q.id === picked) ?? data.quizzes.find((q) => q.start_time <= bar.t && bar.t <= q.bar_time)
 
   // A quiz plays out until the next one begins, or the last bar.
   let after = null
@@ -169,7 +205,9 @@ export function SimBarEditor({ data, updateData, onListChanged }: Props) {
   }
 
   const removeQuiz = async (target: SimBarQuiz) => {
-    if (!window.confirm(`${quizFrames(target)} 퀴즈를 삭제할까요? 그 연습 기록도 함께 지워집니다.`)) return
+    const links = insights?.evidence.filter((e) => e.quiz_id === target.id).length ?? 0
+    const more = links > 0 ? `연습 기록과 인사이트 항목 ${links}개와의 연결도` : '그 연습 기록도'
+    if (!window.confirm(`${quizFrames(target)} 퀴즈를 삭제할까요? ${more} 함께 지워집니다.`)) return
     await api.deleteSimBarQuiz(target.id)
     updateData((d) => ({
       ...d,
@@ -178,6 +216,7 @@ export function SimBarEditor({ data, updateData, onListChanged }: Props) {
     }))
     setPicked(null)
     onListChanged()
+    void refreshInsights()
   }
 
   const patchQuiz = async (id: string, patch: Parameters<typeof api.updateSimBarQuiz>[1]) => {
@@ -208,6 +247,13 @@ export function SimBarEditor({ data, updateData, onListChanged }: Props) {
         drawings={data.drawings}
         onDrawings={setDrawings}
         revealAll
+        insight={quizInsight}
+        insightHint="이 시나리오의 퀴즈에 등록된 해석이 없습니다"
+        onSeek={(to) => {
+          // Stay on the quiz being read once the chart has moved past its range.
+          if (quizInsight) setPicked(quizInsight.quizId)
+          setPos(to)
+        }}
       />
 
       <div className="sim-bar-nav">
@@ -326,6 +372,13 @@ export function SimBarEditor({ data, updateData, onListChanged }: Props) {
                 if (e.target.value !== quiz.note) void patchQuiz(quiz.id, { note: e.target.value })
               }}
             />
+            {insights && (
+              <div className="sim-quiz-row sim-quiz-insights">
+                <span className="sim-dim">인사이트:</span>
+                <InsightLinker map={insights} quizId={quiz.id} onChanged={refreshInsights} />
+                <span className="sim-dim">이 퀴즈에서 얻은 것을 인사이트 맵의 항목에 연결합니다.</span>
+              </div>
+            )}
           </>
         )}
       </section>

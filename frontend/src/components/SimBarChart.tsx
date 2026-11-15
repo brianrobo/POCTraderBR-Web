@@ -11,12 +11,13 @@ import {
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
+  type Logical,
   type SeriesMarkerBar,
   type Time,
   type UTCTimestamp,
 } from 'lightweight-charts'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { SimDrawing, SimDrawingKind } from '../api/client'
+import type { SimDrawing, SimDrawingKind, SimQuizInsight } from '../api/client'
 import {
   MA_PERIODS,
   formatBarTime,
@@ -28,6 +29,7 @@ import {
   type Bar,
 } from '../lib/simBars'
 import { SimDrawingLayer, type Shape } from './SimDrawingLayer'
+import { SimInsightLayer } from './SimInsightLayer'
 import { SimRangeLayer, type TimeRange } from './SimRangeLayer'
 
 export type LowerPane = 'amount' | 'volume'
@@ -74,14 +76,21 @@ interface Props {
   /** How many bars are in view until the user zooms. */
   visibleBars: number
   lower: LowerPane
-  /** Lets lines, rectangles and ellipses be drawn on the chart. */
+  /** Lets lines, horizontal lines, rectangles and ellipses be drawn on the chart. */
   drawing?: ChartDrawing
   /** Frame number(s) of the bar at a time, shown under the crosshair's time. */
   frameLabel?: (t: number) => string | null
+  /** Numbers the bars under the time axis, one label every this many bars (the first bar is 1). */
+  frameEvery?: number
+  /** A quiz's insight to draw over the bars — only what sits on the bars given. */
+  insight?: SimQuizInsight | null
+  /** Bars (by index) to bring into view; each new value moves the view once. */
+  focus?: { from: number; to: number } | null
 }
 
 const TOOLS: { kind: SimDrawingKind; label: string }[] = [
   { kind: 'line', label: '선' },
+  { kind: 'hline', label: '수평선' },
   { kind: 'rect', label: '사각형' },
   { kind: 'ellipse', label: '원' },
 ]
@@ -112,7 +121,8 @@ const MARK_STYLE: Record<ChartMark['kind'], Pick<SeriesMarkerBar<Time>, 'positio
 }
 // Empty bar slots kept to the right of the latest bar.
 const RIGHT_PAD = 4
-// Tall enough for the two lines (Korean time, frame number) under the crosshair's time label.
+// Tall enough for the two lines (Korean time, frame number) under the crosshair's time label,
+// and for the row of frame numbers under the axis' own labels.
 const TIME_AXIS_HEIGHT = 58
 
 interface Handles {
@@ -124,6 +134,9 @@ interface Handles {
   layer: SimDrawingLayer
   /** One per pane, so a span is shaded from top to bottom. */
   bands: SimRangeLayer[]
+  insights: SimInsightLayer[]
+  /** Puts the frame numbers under the bars they belong to, where those are now. */
+  placeFrames: () => void
 }
 
 const at = (t: number) => t as UTCTimestamp
@@ -133,13 +146,27 @@ const at = (t: number) => t as UTCTimestamp
  * Each new set of bars re-anchors the view on the latest bar while keeping
  * the zoom the user chose, like an HTS chart advancing one candle.
  */
-export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, frameLabel }: Props) {
+export function SimBarChart({
+  bars,
+  marks,
+  ranges,
+  visibleBars,
+  lower,
+  drawing,
+  frameLabel,
+  frameEvery,
+  insight = null,
+  focus = null,
+}: Props) {
   const host = useRef<HTMLDivElement>(null)
   const hoverLabel = useRef<HTMLDivElement>(null)
-  // The crosshair handler is set up once; it reads the current `frameLabel` from here.
+  const frameRow = useRef<HTMLDivElement>(null)
+  // The chart's handlers are set up once; they read the current props from here.
   const frameOf = useRef(frameLabel)
+  const numbering = useRef({ every: frameEvery, count: bars.length })
   useEffect(() => {
     frameOf.current = frameLabel
+    numbering.current = { every: frameEvery, count: bars.length }
   })
   const handles = useRef<Handles | null>(null)
   // The first draw uses `visibleBars`; later ones keep the current zoom.
@@ -171,6 +198,8 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
         timeVisible: true,
         secondsVisible: false,
         rightOffset: RIGHT_PAD,
+        // The same bars stay in view when the chart is given more or less room.
+        lockVisibleTimeRangeOnResize: true,
         minimumHeight: TIME_AXIS_HEIGHT,
         tickMarkFormatter: (time: Time, type: TickMarkType) =>
           type === TickMarkType.Time || type === TickMarkType.TimeWithSeconds
@@ -213,6 +242,12 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
       series.attachPrimitive(band)
       return band
     })
+    // The lower pane has no prices: it gets only what runs from top to bottom.
+    const insights = [candles, lowerSeries].map((series) => {
+      const drawn = new SimInsightLayer(series === lowerSeries)
+      series.attachPrimitive(drawn)
+      return drawn
+    })
     // A click on a drawn shape picks it; a click anywhere else lets go of it.
     chart.subscribeClick((param) =>
       setSelected(typeof param.hoveredObjectId === 'string' ? param.hoveredObjectId : null),
@@ -233,6 +268,36 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
       const half = label.offsetWidth / 2
       label.style.left = `${Math.max(half, Math.min(x, chart.timeScale().width() - half))}px`
     })
+    // Frame numbers under the time axis' own labels; they follow the bars as the chart is moved or resized.
+    const placeFrames = () => {
+      const row = frameRow.current
+      if (!row) return
+      const scale = chart.timeScale()
+      const shown = scale.getVisibleLogicalRange()
+      const { every, count } = numbering.current
+      const labels: HTMLElement[] = []
+      if (every && shown) {
+        const first = Math.max(1, Math.ceil((shown.from + 1) / every)) * every
+        for (let frame = first; frame <= count && frame - 1 <= shown.to; frame += every) {
+          const x = scale.logicalToCoordinate((frame - 1) as Logical)
+          if (x === null) continue
+          const label = document.createElement('span')
+          label.textContent = String(frame)
+          label.style.left = `${x}px`
+          labels.push(label)
+        }
+      }
+      row.style.width = `${scale.width()}px`
+      row.replaceChildren(...labels)
+    }
+    chart.timeScale().subscribeVisibleLogicalRangeChange(placeFrames)
+    // The size event comes before the bars are laid out at the new width, so the numbers wait a frame.
+    let queued = 0
+    const placeFramesSoon = () => {
+      cancelAnimationFrame(queued)
+      queued = requestAnimationFrame(placeFrames)
+    }
+    chart.timeScale().subscribeSizeChange(placeFramesSoon)
     handles.current = {
       chart,
       candles,
@@ -241,9 +306,12 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
       marks: createSeriesMarkers(candles, []),
       layer,
       bands,
+      insights,
+      placeFrames,
     }
     fresh.current = true
     return () => {
+      cancelAnimationFrame(queued)
       handles.current = null
       chart.remove()
     }
@@ -280,7 +348,18 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
       scale.setVisibleLogicalRange({ from: right - width, to: right })
       fresh.current = false
     }
-  }, [bars, marks, ranges, visibleBars, lower])
+    h.placeFrames()
+  }, [bars, marks, ranges, visibleBars, lower, frameEvery])
+
+  useEffect(() => {
+    handles.current?.insights.forEach((drawn) => drawn.set(insight, bars))
+  }, [insight, bars])
+
+  // After the bars are drawn, so that a view asked for along with new bars wins.
+  useEffect(() => {
+    if (!focus) return
+    handles.current?.chart.timeScale().setVisibleLogicalRange({ from: focus.from - 1, to: focus.to + RIGHT_PAD })
+  }, [focus])
 
   useEffect(() => {
     handles.current?.layer.set(shapes, picked)
@@ -314,6 +393,14 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
     return x === null || y === null ? null : { x: rounded(x, 3), y: rounded(y, 5) }
   }
 
+  // Whether the pointer is over the candles, not the volume below them or the time axis.
+  const overCandles = (e: ReactPointerEvent) => {
+    const h = handles.current
+    if (!h || !host.current) return false
+    const y = e.clientY - host.current.getBoundingClientRect().top
+    return y >= 0 && y <= h.chart.panes()[0].getHeight()
+  }
+
   const beginShape = (e: ReactPointerEvent<HTMLDivElement>) => {
     const p = pointAt(e)
     if (e.button !== 0 || !tool || !p) return
@@ -324,7 +411,11 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
   const stretchShape = (e: ReactPointerEvent) => {
     const p = pointAt(e)
     if (!draft.current || !p) return
-    draft.current.shape = { ...draft.current.shape, x2: p.x, y2: p.y }
+    // A horizontal line has no second corner: it follows the pointer until it is let go.
+    draft.current.shape =
+      draft.current.shape.kind === 'hline'
+        ? { ...draft.current.shape, x1: p.x, y1: p.y, x2: p.x, y2: p.y }
+        : { ...draft.current.shape, x2: p.x, y2: p.y }
     handles.current?.layer.set([...shapes, draft.current.shape], picked)
   }
 
@@ -332,7 +423,9 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
     const drawn = draft.current
     draft.current = null
     if (!drawn) return
-    if (keep && Math.max(Math.abs(e.clientX - drawn.fromX), Math.abs(e.clientY - drawn.fromY)) >= MIN_DRAG) {
+    const dragged = Math.max(Math.abs(e.clientX - drawn.fromX), Math.abs(e.clientY - drawn.fromY)) >= MIN_DRAG
+    // A horizontal line is placed with a click, at a price on the chart; the other shapes need a drag.
+    if (keep && (drawn.shape.kind === 'hline' ? overCandles(e) : dragged)) {
       const id = newId()
       drawing?.onAdd({ ...drawn.shape, id })
       setSelected(id)
@@ -343,6 +436,7 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
   return (
     <div className="sim-chart">
       <div ref={host} className="sim-chart-host" />
+      <div ref={frameRow} className="sim-chart-frames" />
       <div ref={hoverLabel} className="sim-chart-kst" />
       {tool && (
         <div
@@ -366,7 +460,11 @@ export function SimBarChart({ bars, marks, ranges, visibleBars, lower, drawing, 
                 key={t.kind}
                 type="button"
                 className={tool === t.kind ? 'active' : ''}
-                title={`${t.label} 그리기 — 차트 위에서 끌어서 그립니다 (Esc 취소)`}
+                title={
+                  t.kind === 'hline'
+                    ? '수평선 그리기 — 차트 위를 클릭하면 그 가격에 그어집니다 (Esc 취소)'
+                    : `${t.label} 그리기 — 차트 위에서 끌어서 그립니다 (Esc 취소)`
+                }
                 onClick={() => setTool(tool === t.kind ? null : t.kind)}
               >
                 {t.label}

@@ -16,6 +16,7 @@ export function SimScenarioAdd({ onCreated, onCancel }: Props) {
   // Start time of the session to replay.
   const [picked, setPicked] = useState<number | null>(null)
   const [name, setName] = useState('')
+  const [stockName, setStockName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -45,7 +46,7 @@ export function SimScenarioAdd({ onCreated, onCancel }: Props) {
     setBusy(true)
     setError(null)
     try {
-      onCreated(await api.importSimScenario(file, picked, name.trim()))
+      onCreated(await api.importSimScenario(file, picked, name.trim(), stockName.trim()))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setBusy(false)
@@ -94,7 +95,7 @@ export function SimScenarioAdd({ onCreated, onCancel }: Props) {
         {info && (
           <div className="sim-hint">
             {info.symbol} · 1분봉 {info.bar_count.toLocaleString()}개 · {formatBarTime(info.sessions[0].start)} ~{' '}
-            {formatBarTime(info.sessions[info.sessions.length - 1].end)}. 30분봉은 이 1분봉을 묶어서 그리므로 파일은
+            {formatBarTime(info.sessions[info.sessions.length - 1].end)}. 30분봉·5분봉은 이 1분봉을 묶어서 그리므로 파일은
             하나면 됩니다.
           </div>
         )}
@@ -137,6 +138,20 @@ export function SimScenarioAdd({ onCreated, onCancel }: Props) {
                 placeholder={defaultName}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void create()
+                }}
+              />
+            </div>
+
+            <div className="sim-quiz-row">
+              <span className="sim-pane-title">④ 종목명</span>
+              <input
+                type="text"
+                className="sim-label-input sim-stock-input"
+                placeholder="한글 종목명 (선택) — 목록에서 이름 아래에 표시됩니다"
+                value={stockName}
+                onChange={(e) => setStockName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void create()
                 }}

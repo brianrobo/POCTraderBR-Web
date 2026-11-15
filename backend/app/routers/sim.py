@@ -21,12 +21,21 @@ from ..models import (
     SimFrame,
     SimPriceFileInfo,
     SimPriceSession,
+    SimQuizInsight,
     SimScenario,
     SimScenarioDetail,
     new_id,
     now,
 )
-from ..orm import SimAttemptORM, SimBarAttemptORM, SimBarQuizORM, SimBarSetORM, SimFrameORM, SimScenarioORM
+from ..orm import (
+    InsightEvidenceORM,
+    SimAttemptORM,
+    SimBarAttemptORM,
+    SimBarQuizORM,
+    SimBarSetORM,
+    SimFrameORM,
+    SimScenarioORM,
+)
 from ..paths import ASSETS_DIR
 from ..price_files import PriceFileError, parse_price_file, symbol_of
 
@@ -41,10 +50,12 @@ Track = Literal["30m", "1m"]
 
 class ScenarioCreate(BaseModel):
     name: str
+    stock_name: str = ""
 
 
 class ScenarioUpdate(BaseModel):
     name: Optional[str] = None
+    stock_name: Optional[str] = None  # "" clears it
 
 
 class FrameUpdate(BaseModel):
@@ -137,6 +148,7 @@ def _detail(session: Session, row: SimScenarioORM) -> SimScenarioDetail:
     return SimScenarioDetail(
         id=row.id,
         name=row.name,
+        stock_name=row.stock_name or "",
         kind=row.kind or "frames",  # type: ignore[arg-type]
         position=row.position,
         created_at=row.created_at,
@@ -159,6 +171,7 @@ def _bar_quiz_to_api(row: SimBarQuizORM) -> SimBarQuiz:
         bar_time=row.bar_time,
         outcome=row.outcome or "",  # type: ignore[arg-type]
         note=row.note,
+        insight=SimQuizInsight.model_validate_json(row.insight_json) if row.insight_json else None,
     )
 
 
@@ -247,6 +260,25 @@ def _check_quiz_range(session: Session, scenario_id: str, start_time: int, bar_t
         raise HTTPException(409, "another quiz already ends at this bar")
 
 
+def _check_insight(session: Session, scenario_id: str, insight: SimQuizInsight) -> None:
+    """Everything an insight draws sits on frames the scenario has, and its
+    spans do not end before they start."""
+    count = len(json.loads(_require_bar_set(session, scenario_id).bars_json))
+    spans = [(x.start, x.end) for x in [*insight.zones, *insight.levels]]
+    if insight.view_start or insight.view_end:
+        spans.append((insight.view_start, insight.view_end))
+    frames = [x.frame for x in [*insight.vlines, *insight.brackets, *insight.marks]]
+    frames += [frame for span in spans for frame in span]
+    # 0 stands for "not given" in these.
+    optional = [x.start for x in insight.bands] + [x.label_frame for x in [*insight.bands, *insight.levels]]
+    if any(not 1 <= f <= count for f in frames) or any(not 0 <= f <= count for f in optional):
+        raise HTTPException(400, f"frames must be between 1 and {count}")
+    if any(start > end for start, end in spans):
+        raise HTTPException(400, "a span must not end before it starts")
+    if any(x.lo > x.hi for x in [*insight.bands, *insight.brackets]):
+        raise HTTPException(400, "a price range must not end below where it starts")
+
+
 def _delete_frame_rows(session: Session, frames: List[SimFrameORM]) -> List[str]:
     """Delete frames (and the attempts pointing at them — foreign_keys=ON
     would reject the frame delete otherwise). Returns the image paths to
@@ -274,6 +306,7 @@ def create_scenario(payload: ScenarioCreate, session: Session = Depends(get_sess
     row = SimScenarioORM(
         id=new_id(),
         name=payload.name,
+        stock_name=payload.stock_name.strip(),
         position=next_position(session, SimScenarioORM),
         created_at=now(),
     )
@@ -295,6 +328,8 @@ def update_scenario(
     row = _require_scenario(session, scenario_id)
     if payload.name is not None:
         row.name = payload.name
+    if payload.stock_name is not None:
+        row.stock_name = payload.stock_name.strip()
     session.commit()
     session.refresh(row)
     return _summary(session, row)
@@ -305,7 +340,7 @@ def delete_scenario(scenario_id: str, session: Session = Depends(get_session)) -
     row = _require_scenario(session, scenario_id)
     _delete_frame_rows(session, session.query(SimFrameORM).filter_by(scenario_id=scenario_id).all())
     # Children first — foreign_keys=ON rejects deleting a row that is still referenced.
-    for model in (SimBarAttemptORM, SimBarQuizORM, SimBarSetORM):
+    for model in (InsightEvidenceORM, SimBarAttemptORM, SimBarQuizORM, SimBarSetORM):
         session.query(model).filter_by(scenario_id=scenario_id).delete(synchronize_session=False)
     session.delete(row)
     session.commit()
@@ -460,6 +495,7 @@ async def import_scenario(
     file: UploadFile = File(...),
     replay_from: Optional[int] = Form(None),
     name: str = Form(""),
+    stock_name: str = Form(""),
     session: Session = Depends(get_session),
 ) -> SimScenario:
     """Create a 'bars' scenario from an exported 1-minute price file. Replay
@@ -477,6 +513,7 @@ async def import_scenario(
         id=new_id(),
         name=name.strip()
         or f"{time.strftime('%y.%m.%d', time.gmtime(_session_day(replay_from) * 86400))} {symbol}".strip(),
+        stock_name=stock_name.strip(),
         kind="bars",
         position=next_position(session, SimScenarioORM),
         created_at=now(),
@@ -558,10 +595,33 @@ def update_bar_quiz(quiz_id: str, payload: BarQuizUpdate, session: Session = Dep
     return _bar_quiz_to_api(row)
 
 
+@router.put("/bar-quizzes/{quiz_id}/insight", response_model=SimBarQuiz)
+def set_bar_quiz_insight(
+    quiz_id: str, payload: SimQuizInsight, session: Session = Depends(get_session)
+) -> SimBarQuiz:
+    """Replace what "My Insight" draws on the chart for the quiz."""
+    row = _require_bar_quiz(session, quiz_id)
+    _check_insight(session, row.scenario_id, payload)
+    row.insight_json = payload.model_dump_json()
+    session.commit()
+    session.refresh(row)
+    return _bar_quiz_to_api(row)
+
+
+@router.delete("/bar-quizzes/{quiz_id}/insight", response_model=SimBarQuiz)
+def clear_bar_quiz_insight(quiz_id: str, session: Session = Depends(get_session)) -> SimBarQuiz:
+    row = _require_bar_quiz(session, quiz_id)
+    row.insight_json = ""
+    session.commit()
+    session.refresh(row)
+    return _bar_quiz_to_api(row)
+
+
 @router.delete("/bar-quizzes/{quiz_id}")
 def delete_bar_quiz(quiz_id: str, session: Session = Depends(get_session)) -> dict:
     row = _require_bar_quiz(session, quiz_id)
-    session.query(SimBarAttemptORM).filter_by(quiz_id=quiz_id).delete(synchronize_session=False)
+    for model in (InsightEvidenceORM, SimBarAttemptORM):
+        session.query(model).filter_by(quiz_id=quiz_id).delete(synchronize_session=False)
     session.delete(row)
     session.commit()
     return {"ok": True}

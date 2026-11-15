@@ -10,7 +10,6 @@ ROOT_CATEGORY_ID = "__ROOT__"
 ROOT_STUDY_PLAN_ID = "__STUDY_ROOT__"
 REMIND_NOTE_ID = "__REMIND__"
 BUY_CHECKLIST_SETTINGS_ID = "__BUY_CHECKLIST__"
-VIRTUAL_SIM_NOTE_ID = "__VIRTUAL_SIM__"
 
 
 def new_id() -> str:
@@ -152,14 +151,6 @@ class RemindNote(BaseModel):
     note_html: str = ""
 
 
-class VirtualSimNote(BaseModel):
-    """Single research note for the Virtual Simul tab (real-data trading
-    simulators to use or build) — same one-block shape as RemindNote."""
-
-    id: str
-    note_html: str = ""
-
-
 class RemindVideo(BaseModel):
     id: str
     title: str
@@ -248,6 +239,7 @@ class SimAttempt(BaseModel):
 class SimScenario(BaseModel):
     id: str
     name: str
+    stock_name: str = ""  # the stock's name, shown under `name` in the list
     kind: Literal["frames", "bars"] = "frames"
     position: int = 0
     created_at: float = Field(default_factory=now)
@@ -264,6 +256,88 @@ class SimScenarioDetail(SimScenario):
     attempts: List[SimAttempt] = Field(default_factory=list)
 
 
+class SimInsightBand(BaseModel):
+    """A price band shaded across the chart, e.g. where buyers are stuck."""
+
+    lo: float
+    hi: float
+    color: str = "#8a2be2"
+    text: str = ""
+    start: int = 0  # frame the band begins at; 0: the whole chart
+    label_frame: int = 0  # frame the text starts at; 0: the left edge
+
+
+class SimInsightZone(BaseModel):
+    """A span of frames shaded over the full height of the chart."""
+
+    start: int
+    end: int
+    color: str = "#ff8c00"
+    opacity: float = 0.22
+    text: str = ""
+    text_price: float = 0  # price the text hangs from; 0: the top of the chart
+
+
+class SimInsightLevel(BaseModel):
+    """A dashed line at a price, over a span of frames."""
+
+    price: float
+    start: int
+    end: int
+    color: str = "#0b6b2e"
+    text: str = ""
+    label_frame: int = 0  # frame the text starts at; 0: `start`
+
+
+class SimInsightLine(BaseModel):
+    """A vertical line at the right edge of a frame — a moment of decision."""
+
+    frame: int
+    color: str = "#111111"
+    text: str = ""
+    text_price: float = 0  # price the text hangs from; 0: the top of the chart
+    side: Literal["left", "right"] = "right"  # which side of the line the text is on
+
+
+class SimInsightBracket(BaseModel):
+    """The distance between two prices, drawn at a frame."""
+
+    frame: int
+    lo: float
+    hi: float
+    color: str = "#b00020"
+    text: str = ""
+
+
+class SimInsightMark(BaseModel):
+    """A label pointing at one bar: at its high ('above') or its low ('below').
+    `len` and `dx` (pixels) say how far up or down and sideways the text sits."""
+
+    frame: int
+    text: str
+    side: Literal["above", "below"] = "above"
+    len: int = 24
+    dx: int = 0
+    bold: bool = False
+
+
+class SimQuizInsight(BaseModel):
+    """What the 1-minute chart shows for a quiz when "My Insight" is on: the
+    reading of the quiz drawn over the bars. Frames are bar numbers counted
+    from 1 (frame N is bars[N-1]), as the simulator shows them."""
+
+    # Frames to bring into view when it is turned on; 0: around the quiz range.
+    view_start: int = 0
+    view_end: int = 0
+    bands: List[SimInsightBand] = Field(default_factory=list)
+    zones: List[SimInsightZone] = Field(default_factory=list)
+    levels: List[SimInsightLevel] = Field(default_factory=list)
+    vlines: List[SimInsightLine] = Field(default_factory=list)
+    brackets: List[SimInsightBracket] = Field(default_factory=list)
+    marks: List[SimInsightMark] = Field(default_factory=list)
+    notes: List[str] = Field(default_factory=list)  # the reading in words, listed under the chart
+
+
 class SimBarQuiz(BaseModel):
     """A quiz of a 'bars' scenario: the bars from `start_time` to `bar_time`
     are watched, then the question is asked at `bar_time` (the same bar for a
@@ -276,6 +350,7 @@ class SimBarQuiz(BaseModel):
     bar_time: int
     outcome: Literal["", "profit", "loss"] = ""
     note: str = ""
+    insight: Optional[SimQuizInsight] = None
 
 
 class SimBarAttempt(BaseModel):
@@ -288,14 +363,15 @@ class SimBarAttempt(BaseModel):
 
 
 class SimDrawing(BaseModel):
-    """A line, rectangle or ellipse drawn on the 1-minute chart of a 'bars'
-    scenario, spanning two corner points. `x` is a position along the bars
+    """A line, horizontal line, rectangle or ellipse drawn on the 1-minute chart
+    of a 'bars' scenario, spanning two corner points (a horizontal line runs
+    across the whole chart at one price: both points are where it was placed). `x` is a position along the bars
     (index into `bars`, fractional between two bars and free to run past the
     last one), `y` a price. `at` is the index of the latest bar on the chart
     when it was drawn — practice shows the drawing from that bar on."""
 
     id: str
-    kind: Literal["line", "rect", "ellipse"]
+    kind: Literal["line", "hline", "rect", "ellipse"]
     x1: float
     y1: float
     x2: float
@@ -335,6 +411,59 @@ class SimPriceFileInfo(BaseModel):
     source_name: str = ""
     bar_count: int = 0
     sessions: List[SimPriceSession] = Field(default_factory=list)
+
+
+class InsightNode(BaseModel):
+    """One node of the insight map. `kind` says what a rule is for (a reason
+    to buy, a reason not to, something to wait for; '' for a plain grouping)
+    and `status` how settled it is — a rule starts as a candidate and is
+    confirmed once it keeps showing up."""
+
+    id: str
+    name: str
+    parent_id: Optional[str] = None
+    position: int = 0
+    kind: Literal["", "buy", "avoid", "wait"] = ""
+    status: Literal["candidate", "confirmed", "dropped"] = "candidate"
+    description: str = ""
+    created_at: float = Field(default_factory=now)
+
+
+class InsightEvidence(BaseModel):
+    """Links an insight node to a simulator quiz that supports it, or that
+    went against it."""
+
+    id: str
+    node_id: str
+    quiz_id: str
+    stance: Literal["support", "counter"] = "support"
+    comment: str = ""
+    created_at: float = Field(default_factory=now)
+
+
+class InsightQuiz(BaseModel):
+    """A simulator quiz as the insight map shows it. Frame numbers count the
+    scenario's bars from 1, as the simulator does; the counts are the practice
+    answers given at this quiz."""
+
+    id: str
+    scenario_id: str
+    scenario_name: str
+    start_time: int
+    bar_time: int
+    start_frame: int = 0
+    end_frame: int = 0
+    outcome: Literal["", "profit", "loss"] = ""
+    note: str = ""
+    graded_count: int = 0
+    correct_count: int = 0
+
+
+class InsightMap(BaseModel):
+    nodes: List[InsightNode] = Field(default_factory=list)
+    evidence: List[InsightEvidence] = Field(default_factory=list)
+    # Every quiz of every price-data scenario, linked to a node or not.
+    quizzes: List[InsightQuiz] = Field(default_factory=list)
 
 
 class OneMinNote(BaseModel):

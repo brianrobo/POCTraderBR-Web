@@ -1,45 +1,51 @@
-import { useEffect, useState } from 'react'
-import { api, type VirtualSimNote } from '../api/client'
-import { NoteEditor } from './NoteEditor'
+import { useState } from 'react'
+import { InsightMapPage } from './InsightMapPage'
 import { SimulatorPage } from './SimulatorPage'
 
-type View = 'simulator' | 'research'
+type View = 'simulator' | 'insights'
 
-// Two views: the frame simulator (captured chart flows replayed as a buy /
-// pass quiz) and the research note on real-historical-data simulators
-// (2026-11-07 kickoff) that this tab started as.
+const VIEWS: { value: View; label: string }[] = [
+  { value: 'simulator', label: '시뮬레이터' },
+  { value: 'insights', label: '인사이트 맵' },
+]
+
+// Two views: the simulator (a day's chart flow replayed as a quiz) and the
+// insight map that gathers what each quiz taught into a tree of rules.
 export function VirtualSimPage() {
   const [view, setView] = useState<View>('simulator')
+  // Kept here so the map comes back to the same node after a look at a quiz in the simulator.
+  const [insightId, setInsightId] = useState<string | null>(null)
+  // The quiz the simulator opens on, when it was reached from the insight map.
+  const [openQuiz, setOpenQuiz] = useState<{ scenarioId: string; quizId: string } | null>(null)
 
   return (
     <div className="virtualsim-root">
       <div className="virtualsim-subtabs">
-        <button type="button" className={view === 'simulator' ? 'active' : ''} onClick={() => setView('simulator')}>
-          시뮬레이터
-        </button>
-        <button type="button" className={view === 'research' ? 'active' : ''} onClick={() => setView('research')}>
-          리서치 노트
-        </button>
+        {VIEWS.map((v) => (
+          <button
+            key={v.value}
+            type="button"
+            className={view === v.value ? 'active' : ''}
+            onClick={() => {
+              setOpenQuiz(null)
+              setView(v.value)
+            }}
+          >
+            {v.label}
+          </button>
+        ))}
       </div>
-      {view === 'simulator' ? <SimulatorPage /> : <ResearchNote />}
-    </div>
-  )
-}
-
-function ResearchNote() {
-  const [note, setNote] = useState<VirtualSimNote | null>(null)
-
-  useEffect(() => {
-    api.getVirtualSimNote().then(setNote)
-  }, [])
-
-  return (
-    <div className="virtualsim-page">
-      <h2 className="remind-heading">Virtual Simul — 리서치</h2>
-      {note ? (
-        <NoteEditor html={note.note_html} onSave={(html) => api.updateVirtualSimNote(html)} />
+      {view === 'simulator' ? (
+        <SimulatorPage open={openQuiz} />
       ) : (
-        <div className="page-view-loading">로딩 중...</div>
+        <InsightMapPage
+          selectedId={insightId}
+          onSelect={setInsightId}
+          onOpenQuiz={(scenarioId, quizId) => {
+            setOpenQuiz({ scenarioId, quizId })
+            setView('simulator')
+          }}
+        />
       )}
     </div>
   )

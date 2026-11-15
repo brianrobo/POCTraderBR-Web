@@ -153,11 +153,6 @@ export interface ChartPattern {
   created_at: number
 }
 
-export interface VirtualSimNote {
-  id: string
-  note_html: string
-}
-
 export type SimTrack = '30m' | '1m'
 export type SimOutcome = '' | 'profit' | 'loss'
 export type SimAnswer = 'buy' | 'skip'
@@ -190,6 +185,8 @@ export type SimKind = 'frames' | 'bars'
 export interface SimScenario {
   id: string
   name: string
+  /** The stock's name, shown under `name` in the list; '' when not given. */
+  stock_name: string
   kind: SimKind
   position: number
   created_at: number
@@ -206,6 +203,31 @@ export interface SimScenarioDetail extends SimScenario {
   attempts: SimAttempt[]
 }
 
+/**
+ * The reading of a quiz drawn on the 1-minute chart by "My Insight". Frames
+ * are bar numbers counted from 1, as the simulator shows them; a frame or
+ * price of 0 where one is optional means "not given".
+ */
+export interface SimQuizInsight {
+  /** Frames to bring into view when it is turned on; 0: around the quiz range. */
+  view_start: number
+  view_end: number
+  /** Price bands shaded across the chart from frame `start` on; the text starts at `label_frame`. */
+  bands: { lo: number; hi: number; color: string; text: string; start: number; label_frame: number }[]
+  /** Spans of frames shaded over the full height; the text hangs from `text_price`. */
+  zones: { start: number; end: number; color: string; opacity: number; text: string; text_price: number }[]
+  /** Dashed lines at a price over a span of frames. */
+  levels: { price: number; start: number; end: number; color: string; text: string; label_frame: number }[]
+  /** Vertical lines at the right edge of a frame. */
+  vlines: { frame: number; color: string; text: string; text_price: number; side: 'left' | 'right' }[]
+  /** The distance between two prices, drawn at a frame. */
+  brackets: { frame: number; lo: number; hi: number; color: string; text: string }[]
+  /** Labels pointing at a bar's high or low; `len` and `dx` are pixels up/down and sideways. */
+  marks: { frame: number; text: string; side: 'above' | 'below'; len: number; dx: number; bold: boolean }[]
+  /** The reading in words, listed under the chart. */
+  notes: string[]
+}
+
 export interface SimBarQuiz {
   id: string
   scenario_id: string
@@ -215,6 +237,7 @@ export interface SimBarQuiz {
   bar_time: number
   outcome: SimOutcome
   note: string
+  insight: SimQuizInsight | null
 }
 
 export interface SimBarAttempt {
@@ -226,12 +249,13 @@ export interface SimBarAttempt {
   created_at: number
 }
 
-export type SimDrawingKind = 'line' | 'rect' | 'ellipse'
+export type SimDrawingKind = 'line' | 'hline' | 'rect' | 'ellipse'
 
 /**
  * A shape drawn on the 1-minute chart, spanning two corner points: `x` is a
  * position along the bars (index, fractional between two bars and free to run
- * past the last one), `y` a price.
+ * past the last one), `y` a price. A horizontal line ('hline') runs across the
+ * whole chart at one price: both points are the spot it was placed at.
  */
 export interface SimDrawing {
   id: string
@@ -270,6 +294,54 @@ export interface SimPriceFileInfo {
   source_name: string
   bar_count: number
   sessions: SimPriceSession[]
+}
+
+// What a rule of the insight map is for; '' is a plain grouping.
+export type InsightKind = '' | 'buy' | 'avoid' | 'wait'
+export type InsightStatus = 'candidate' | 'confirmed' | 'dropped'
+export type InsightStance = 'support' | 'counter'
+
+export interface InsightNode {
+  id: string
+  name: string
+  parent_id: string | null
+  position: number
+  kind: InsightKind
+  status: InsightStatus
+  description: string
+  created_at: number
+}
+
+/** Links an insight node to a simulator quiz that supports it, or went against it. */
+export interface InsightEvidence {
+  id: string
+  node_id: string
+  quiz_id: string
+  stance: InsightStance
+  comment: string
+  created_at: number
+}
+
+/** A simulator quiz as the insight map shows it; frame numbers count the scenario's bars from 1. */
+export interface InsightQuiz {
+  id: string
+  scenario_id: string
+  scenario_name: string
+  start_time: number
+  bar_time: number
+  start_frame: number
+  end_frame: number
+  outcome: SimOutcome
+  note: string
+  graded_count: number
+  correct_count: number
+}
+
+export interface InsightMap {
+  nodes: InsightNode[]
+  evidence: InsightEvidence[]
+  /** Every quiz of every price-data scenario, linked to a node or not. */
+  quizzes: InsightQuiz[]
 }
 
 export interface BuyChecklistSettings {
@@ -318,6 +390,17 @@ const STOCK_NAME_FIELD: Record<ImageSlotKey, keyof Page> = {
   a2: 'stock_name_a2',
   b: 'stock_name_b',
   b2: 'stock_name_b2',
+}
+
+// Where the content (data/ + assets/) was last copied to — see docs/backup-restore.md.
+export interface BackupStatus {
+  dest: string
+  auto: boolean
+  keep: number
+  same_drive: boolean
+  count: number
+  latest: { name: string; created: string; label: string; files: number; bytes: number; warnings: number } | null
+  last_run: { time: number; ok: boolean; label?: string; result?: string; snapshot?: string; error?: string; warnings?: string[] } | null
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -489,16 +572,12 @@ export const api = {
     note?: string | null
   }) => request<BuyCheckLogEntry>('/api/buy-checklist/log', { method: 'POST', body: JSON.stringify(payload) }),
 
-  getVirtualSimNote: () => request<VirtualSimNote>('/api/virtual-sim/note'),
-  updateVirtualSimNote: (note_html: string) =>
-    request<VirtualSimNote>('/api/virtual-sim/note', { method: 'PATCH', body: JSON.stringify({ note_html }) }),
-
   listSimScenarios: () => request<SimScenario[]>('/api/sim/scenarios'),
   createSimScenario: (name: string) =>
     request<SimScenario>('/api/sim/scenarios', { method: 'POST', body: JSON.stringify({ name }) }),
   getSimScenario: (id: string) => request<SimScenarioDetail>(`/api/sim/scenarios/${id}`),
-  renameSimScenario: (id: string, name: string) =>
-    request<SimScenario>(`/api/sim/scenarios/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  updateSimScenario: (id: string, patch: { name?: string; stock_name?: string }) =>
+    request<SimScenario>(`/api/sim/scenarios/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteSimScenario: (id: string) => request<{ ok: boolean }>(`/api/sim/scenarios/${id}`, { method: 'DELETE' }),
   addSimFrame: (scenarioId: string, track: SimTrack, image: Blob, filename = 'frame.png') => {
     const form = new FormData()
@@ -525,11 +604,12 @@ export const api = {
     form.append('file', file, file.name)
     return request<SimPriceFileInfo>('/api/sim/price-files/inspect', { method: 'POST', body: form })
   },
-  importSimScenario: (file: File, replayFrom: number, name: string) => {
+  importSimScenario: (file: File, replayFrom: number, name: string, stockName = '') => {
     const form = new FormData()
     form.append('file', file, file.name)
     form.append('replay_from', String(replayFrom))
     form.append('name', name)
+    form.append('stock_name', stockName)
     return request<SimScenario>('/api/sim/scenarios/import', { method: 'POST', body: form })
   },
   getSimBars: (scenarioId: string) => request<SimBarData>(`/api/sim/scenarios/${scenarioId}/bars`),
@@ -557,6 +637,32 @@ export const api = {
       body: JSON.stringify({ answer }),
     }),
 
+  getInsightMap: () => request<InsightMap>('/api/insights'),
+  addInsightNode: (name: string, parent_id: string | null = null) =>
+    request<InsightNode>('/api/insights/nodes', { method: 'POST', body: JSON.stringify({ name, parent_id }) }),
+  updateInsightNode: (
+    id: string,
+    // parent_id '' moves the node to the top level.
+    patch: { name?: string; parent_id?: string; kind?: InsightKind; status?: InsightStatus; description?: string },
+  ) => request<InsightNode>(`/api/insights/nodes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  moveInsightNode: (id: string, direction: 'up' | 'down') =>
+    request<{ ok: boolean }>(`/api/insights/nodes/${id}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ direction }),
+    }),
+  mergeInsightNode: (id: string, into_id: string) =>
+    request<InsightNode>(`/api/insights/nodes/${id}/merge`, { method: 'POST', body: JSON.stringify({ into_id }) }),
+  deleteInsightNode: (id: string) => request<{ ok: boolean }>(`/api/insights/nodes/${id}`, { method: 'DELETE' }),
+  linkInsightQuiz: (node_id: string, quiz_id: string, stance: InsightStance = 'support') =>
+    request<InsightEvidence>('/api/insights/evidence', {
+      method: 'POST',
+      body: JSON.stringify({ node_id, quiz_id, stance }),
+    }),
+  updateInsightEvidence: (id: string, patch: { stance?: InsightStance; comment?: string }) =>
+    request<InsightEvidence>(`/api/insights/evidence/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteInsightEvidence: (id: string) =>
+    request<{ ok: boolean }>(`/api/insights/evidence/${id}`, { method: 'DELETE' }),
+
   listChartPatterns: () => request<ChartPattern[]>('/api/chart-patterns'),
   createChartPattern: (name: string, pdf_group = '') =>
     request<ChartPattern>('/api/chart-patterns', { method: 'POST', body: JSON.stringify({ name, pdf_group }) }),
@@ -577,4 +683,7 @@ export const api = {
   },
   deleteChartPatternExample: (id: string, index: number) =>
     request<ChartPattern>(`/api/chart-patterns/${id}/examples/${index}`, { method: 'DELETE' }),
+
+  getBackupStatus: () => request<BackupStatus>('/api/backup/status'),
+  runBackup: () => request<BackupStatus>('/api/backup/run', { method: 'POST' }),
 }
